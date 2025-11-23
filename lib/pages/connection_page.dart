@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../ecu_model.dart';
+import '../native/ecu_models.dart';
 
 class ConnectionPage extends StatefulWidget {
   final Function(EcuProfile) onEcuConnected;
@@ -38,10 +39,17 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       _isScanning = true;
       _discoveredEcus.clear();
     });
-
-    // Mock UDS Functional Scan (0x7DF)
+    // Delegate mock data retrieval to native models (FFI) when available.
     Timer(const Duration(seconds: 2), () {
-      if (mounted) {
+      if (!mounted) return;
+      try {
+        final nativeList = getMockEcusFromNative();
+        setState(() {
+          _isScanning = false;
+          _discoveredEcus = nativeList;
+        });
+      } catch (e) {
+        // Fallback to existing inline mock if anything goes wrong
         setState(() {
           _isScanning = false;
           _discoveredEcus = [
@@ -184,7 +192,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           TextField(
             controller: _txIdController,
