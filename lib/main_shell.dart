@@ -4,7 +4,10 @@ import 'pages/connection_page.dart';
 import 'pages/functional_pages.dart';
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  final VoidCallback onToggleTheme;
+  final bool isDark;
+
+  const MainShell({super.key, required this.onToggleTheme, required this.isDark});
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -36,7 +39,10 @@ class _MainShellState extends State<MainShell> {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please connect to an ECU to access this tool."),
+          content: Text(
+            "Please connect to an ECU to access this tool.",
+            style: TextStyle(color: Colors.white),
+          ),
           backgroundColor: Colors.redAccent,
           duration: Duration(milliseconds: 1500),
           behavior: SnackBarBehavior.floating,
@@ -63,8 +69,10 @@ class _MainShellState extends State<MainShell> {
 
     // Define visual state for tabs
     final bool isLocked = _connectedProfile == null;
-    final Color activeColor = Colors.white;
-    final Color disabledColor = Colors.grey.withOpacity(0.3);
+    final brightness = Theme.of(context).brightness;
+    final Color activeColor = brightness == Brightness.dark ? Colors.white : Colors.black87;
+    final Color disabledColor = Theme.of(context).disabledColor.withOpacity(brightness == Brightness.dark ? 0.3 : 0.6);
+    final Color sidebarBg = Theme.of(context).cardColor;
 
     return Scaffold(
       body: Column(
@@ -72,45 +80,68 @@ class _MainShellState extends State<MainShell> {
           Expanded(
             child: Row(
               children: [
-                // --- 1. UPDATED SIDEBAR ---
-                NavigationRail(
-                  selectedIndex: _selectedIndex,
-                  onDestinationSelected: _onDestinationSelected,
-                  backgroundColor: const Color(0xFF252526),
-                  
-                  // Ensure text is always shown
-                  labelType: NavigationRailLabelType.all,
-                  
-                  // Define base styles
-                  selectedIconTheme: IconThemeData(color: Theme.of(context).primaryColor),
-                  selectedLabelTextStyle: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
-                  unselectedLabelTextStyle: const TextStyle(fontSize: 11),
+                // --- 1. UPDATED SIDEBAR (rail + bottom toggle) ---
+                SizedBox(
+                  width: 72,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: NavigationRail(
+                          selectedIndex: _selectedIndex,
+                          onDestinationSelected: _onDestinationSelected,
+                          backgroundColor: sidebarBg,
 
-                  destinations: [
+                          // Ensure text is always shown
+                          labelType: NavigationRailLabelType.all,
+
+                          // Define base styles
+                          selectedIconTheme: IconThemeData(color: Theme.of(context).primaryColor),
+                          selectedLabelTextStyle: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
+                          unselectedLabelTextStyle: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 11),
+
+                          destinations: [
                     // Tab 0: Connect (Always Active)
-                    const NavigationRailDestination(
+                    NavigationRailDestination(
                       icon: Icon(Icons.cable),
-                      label: Text('Connect'),
+                      label: Text('Connect', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
 
                     // Tab 1: Live Data (Conditional)
                     NavigationRailDestination(
                       icon: Icon(Icons.speed, color: isLocked ? disabledColor : null),
-                      label: Text('Live Data', style: TextStyle(color: isLocked ? disabledColor : activeColor)),
+                      label: Text('Live Data', style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
 
                     // Tab 2: DTCs (Conditional)
                     NavigationRailDestination(
                       icon: Icon(Icons.healing, color: isLocked ? disabledColor : null),
-                      label: Text('DTCs', style: TextStyle(color: isLocked ? disabledColor : activeColor)),
+                      label: Text('DTCs', style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
 
                     // Tab 3: Flash (Conditional)
                     NavigationRailDestination(
                       icon: Icon(Icons.system_update_alt, color: isLocked ? disabledColor : null),
-                      label: Text('Flash', style: TextStyle(color: isLocked ? disabledColor : activeColor)),
+                      label: Text('Flash', style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
                   ],
+                        ),
+                      ),
+
+                      // Bottom area aligned with status bar — contains theme toggle
+                      Container(
+                        height: 36,
+                        color: sidebarBg,
+                        alignment: Alignment.center,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(widget.isDark ? Icons.light_mode : Icons.dark_mode, size: 20, color: Theme.of(context).iconTheme.color),
+                          tooltip: 'Toggle theme',
+                          onPressed: widget.onToggleTheme,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 
                 const VerticalDivider(width: 1, thickness: 1),
@@ -145,7 +176,7 @@ class _MainShellState extends State<MainShell> {
             style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
-          if (isConnected) 
+          if (isConnected)
             IconButton(
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),

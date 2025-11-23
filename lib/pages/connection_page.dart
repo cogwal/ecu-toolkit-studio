@@ -56,6 +56,9 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isWide = width >= 900; // treat wide screens (desktop) differently
+
     return Padding(
       padding: const EdgeInsets.all(32.0),
       child: Column(
@@ -63,37 +66,73 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
         children: [
           Text("Establish Connection", style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 24),
-          Container(
-            width: 400,
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Column(
-              children: [
-                TabBar(
-                  controller: _tabController,
-                  indicatorColor: Theme.of(context).primaryColor,
-                  dividerColor: Colors.transparent,
-                  tabs: const [
-                    Tab(text: "Network Discovery"),
-                    Tab(text: "Direct Connect"),
-                  ],
-                ),
-                SizedBox(
-                  height: 350, // Fixed height for the tab content area
-                  child: TabBarView(
+
+          // Wide layout: show two panels side-by-side. Narrow layout: keep tabs.
+          if (isWide)
+            SizedBox(
+              height: 460,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _panelCard(child: _buildScannerTab(), title: "Network Discovery")),
+                  const SizedBox(width: 16),
+                  Expanded(child: _panelCard(child: _buildDirectTab(), title: "Direct Connect")),
+                ],
+              ),
+            )
+          else
+            Container(
+              width: 400,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                children: [
+                  TabBar(
                     controller: _tabController,
-                    children: [
-                      _buildScannerTab(),
-                      _buildDirectTab(),
+                    indicatorColor: Theme.of(context).primaryColor,
+                    dividerColor: Colors.transparent,
+                    tabs: const [
+                      Tab(text: "Network Discovery"),
+                      Tab(text: "Direct Connect"),
                     ],
                   ),
-                ),
-              ],
+                  SizedBox(
+                    height: 350, // Fixed height for the tab content area
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildScannerTab(),
+                        _buildDirectTab(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _panelCard({required Widget child, String? title}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10),
+      ),
+      padding: const EdgeInsets.all(12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title != null) Padding(
+            padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
+            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
           ),
+          Expanded(child: child),
         ],
       ),
     );
@@ -111,14 +150,14 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
               icon: _isScanning 
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.search),
-              label: Text(_isScanning ? "Scanning 0x7DF..." : "Scan Network"),
+              label: Text(_isScanning ? "Scanning..." : "Discover ECUs"),
             ),
           ),
           const SizedBox(height: 16),
           const Divider(),
           Expanded(
             child: _discoveredEcus.isEmpty && !_isScanning
-              ? const Center(child: Text("No ECUs found. Try scanning.", style: TextStyle(color: Colors.grey)))
+              ? const Center(child: Text("No ECUs found. Try again.", style: TextStyle(color: Colors.grey)))
               : ListView.builder(
                   itemCount: _discoveredEcus.length,
                   itemBuilder: (context, index) {
