@@ -1,3 +1,12 @@
+# Ignore compiled native library copies in the windows folder and runner outputs
+ecu_models.dll
+*.pdb
+
+# Ignore runner build artifacts (Debug/Release folders)
+runner/Debug/
+runner/Release/
+
+# Flutter build artifacts (safe to ignore)
 flutter/ephemeral/
 
 # Visual Studio user-specific files.

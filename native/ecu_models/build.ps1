@@ -11,16 +11,11 @@ param(
 if (-Not (Test-Path $BuildDir)) { New-Item -ItemType Directory -Path $BuildDir | Out-Null }
 Push-Location $BuildDir
 
-cmakeArgs = @(
-  "-G", "Visual Studio 17 2022", # change as needed
-  ".."
-)
-
 Write-Host "Configuring with CMake..."
-cmake @cmakeArgs
+cmake ..
 
 Write-Host "Building..."
-cmake --build . --config Release
+cmake --build . --config Debug
 
 Write-Host "Build complete. Built library should be copied to runner folders if present."
 Pop-Location

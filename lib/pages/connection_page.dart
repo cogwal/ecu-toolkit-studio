@@ -53,9 +53,9 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
         setState(() {
           _isScanning = false;
           _discoveredEcus = [
-            EcuProfile(name: "Engine Control Module", txId: 0x7E0, rxId: 0x7E8, vin: "WBA3N5C5..."),
-            EcuProfile(name: "Transmission Control", txId: 0x7E1, rxId: 0x7E9, vin: "WBA3N5C5..."),
-            EcuProfile(name: "ABS Control Module", txId: 0x7E2, rxId: 0x7EA, vin: "WBA3N5C5..."),
+            EcuProfile(name: "Engine Control Module", txId: 0x7E0, rxId: 0x7E8),
+            EcuProfile(name: "Transmission Control", txId: 0x7E1, rxId: 0x7E9),
+            EcuProfile(name: "ABS Control Module", txId: 0x7E2, rxId: 0x7EA),
           ];
         });
       }

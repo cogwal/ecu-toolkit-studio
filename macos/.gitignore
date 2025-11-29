@@ -1,3 +1,5 @@
+# Ignore macOS dynamic library build outputs and bundle artifacts
+libecu_models.dylib
 # Flutter-related
 **/Flutter/ephemeral/
 **/Pods/

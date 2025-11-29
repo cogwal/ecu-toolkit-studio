@@ -1,1 +1,3 @@
-flutter/ephemeral
+# Ignore native library build outputs
+libecu_models.so
+

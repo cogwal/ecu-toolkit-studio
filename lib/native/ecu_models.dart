@@ -43,9 +43,9 @@ class NativeEcuModels {
   List<EcuProfile> getMockEcusFallback() {
     // Pure Dart fallback (kept in sync with native mocked data)
     final data = '''[
-      {"name":"Engine Control Module","txId":2016,"rxId":2024,"vin":"WBA3N5C5...","protocol":"ISO-15765-4 (UDS)"},
-      {"name":"Transmission Control","txId":2017,"rxId":2025,"vin":"WBA3N5C5...","protocol":"ISO-15765-4 (UDS)"},
-      {"name":"ABS Control Module","txId":2018,"rxId":2026,"vin":"WBA3N5C5...","protocol":"ISO-15765-4 (UDS)"}
+      {"name":"Engine Control Module","txId":2016,"rxId":2024},
+      {"name":"Transmission Control","txId":2017,"rxId":2025},
+      {"name":"Fallback Module","txId":2018,"rxId":2026}
     ]''';
     final list = jsonDecode(data) as List<dynamic>;
     return list.map((e) => EcuProfile.fromJson(e)).toList();
