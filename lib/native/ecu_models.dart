@@ -3,6 +3,7 @@ import 'dart:ffi' as ffi;
 import 'dart:io' show Platform;
 import 'package:ffi/ffi.dart';
 import '../ecu_model.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 typedef _get_mock_ecus_native = ffi.Pointer<ffi.Int8> Function();
 typedef _get_mock_ecus_dart = ffi.Pointer<ffi.Int8> Function();
@@ -22,13 +23,15 @@ class NativeEcuModels {
 
   void initialize() {
     if (available) return;
+    String name = '';
     try {
-      final name = _libraryNameForPlatform();
+      name = _libraryNameForPlatform();
       _lib = ffi.DynamicLibrary.open(name);
       _getMockEcus = _lib.lookupFunction<_get_mock_ecus_native, _get_mock_ecus_dart>('get_mock_ecus');
       _freeCstr = _lib.lookupFunction<_free_cstr_native, _free_cstr_dart>('free_cstring');
       available = true;
-    } catch (e) {
+    } catch (e, s) {
+      debugPrint('Native ECU library ($name) failed to load: $e\n$s');
       available = false;
     }
   }
