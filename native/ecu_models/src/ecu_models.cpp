@@ -14,14 +14,16 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <PCANBasic.h>
+
+#  ifndef ECU_MODELS_DLL_EXPORTS
+#    define ECU_MODELS_DLL_EXPORTS
+#  endif
 #endif
 
 ECU_EXPORT char *get_ttctk_version()
 {
     TkStatusType res = TK_STATUS_OK;
-    char *version = "unknown";
-
-    std::cout << "-- TTC Toolkit version before call " << version << '\n';
+    char *version = "Unknown";
 
     /* check the TTC Toolkit version */
     res = TK_GetVersionString(&version);

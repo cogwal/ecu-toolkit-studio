@@ -78,3 +78,15 @@ class NativeEcuModels {
 
 // Convenience
 List<EcuProfile> getMockEcusFromNative() => NativeEcuModels.instance.getMockEcus();
+
+String getTtctkVersionFromNative() {
+  NativeEcuModels.instance.initialize();
+  if (!NativeEcuModels.instance.available) return 'Unknown';
+
+  final ptr = NativeEcuModels.instance._getTtctkVersion();
+  if (ptr == ffi.nullptr) return 'Unknown';
+  final cstr = ptr.cast<Utf8>();
+  final dartStr = cstr.toDartString();
+  NativeEcuModels.instance._freeCstr(ptr);
+  return dartStr;
+}

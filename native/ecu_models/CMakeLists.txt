@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(ecu_models)
+project(ecu_models LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -104,8 +104,6 @@ if(WIN32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/build")
     )
   endif()
 endif()
-
-
 
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
