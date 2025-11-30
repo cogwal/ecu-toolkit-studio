@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'ecu_model.dart';
 import 'pages/connection_page.dart';
 import 'pages/functional_pages.dart';
+import 'pages/settings_page.dart';
 
 class MainShell extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -16,6 +17,12 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   EcuProfile? _connectedProfile;
+
+  @override
+  void initState() {
+    super.initState();
+    debugPrint('MainShell.initState called');
+  }
 
   // --- Connection Logic ---
   void _handleConnection(EcuProfile profile) {
@@ -35,7 +42,7 @@ class _MainShellState extends State<MainShell> {
   // --- Navigation Logic ---
   void _onDestinationSelected(int index) {
     // Rule: You cannot go to tabs 1, 2, or 3 unless connected
-    if (_connectedProfile == null && index > 0) {
+    if (_connectedProfile == null && index >= 1 && index <= 3) {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -51,7 +58,7 @@ class _MainShellState extends State<MainShell> {
       );
       return;
     }
-    
+
     setState(() {
       _selectedIndex = index;
     });
@@ -65,12 +72,13 @@ class _MainShellState extends State<MainShell> {
       LiveDashboardPage(profile: _connectedProfile),
       DtcPage(profile: _connectedProfile),
       FlashWizardPage(profile: _connectedProfile),
+      // Settings Page (full-screen like other pages)
+      SettingsPage(isDark: widget.isDark, onToggleTheme: widget.onToggleTheme),
     ];
 
     // Define visual state for tabs
     final bool isLocked = _connectedProfile == null;
     final brightness = Theme.of(context).brightness;
-    final Color activeColor = brightness == Brightness.dark ? Colors.white : Colors.black87;
     final Color disabledColor = Theme.of(context).disabledColor.withOpacity(brightness == Brightness.dark ? 0.3 : 0.6);
     final Color sidebarBg = Theme.of(context).cardColor;
 
@@ -80,7 +88,7 @@ class _MainShellState extends State<MainShell> {
           Expanded(
             child: Row(
               children: [
-                // --- 1. UPDATED SIDEBAR (rail + bottom toggle) ---
+                // --- SIDEBAR ---
                 SizedBox(
                   width: 72,
                   child: Column(
@@ -100,58 +108,66 @@ class _MainShellState extends State<MainShell> {
                           unselectedLabelTextStyle: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 11),
 
                           destinations: [
-                    // Tab 0: Connect (Always Active)
-                    NavigationRailDestination(
-                      icon: Icon(Icons.cable),
-                      label: Text('Connect', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
+                            // Tab 0: Connect (Always Active)
+                            NavigationRailDestination(
+                              icon: Icon(Icons.cable),
+                              label: Text('Connect', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
 
-                    // Tab 1: Live Data (Conditional)
-                    NavigationRailDestination(
-                      icon: Icon(Icons.speed, color: isLocked ? disabledColor : null),
-                      label: Text('Live Data', style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
+                            // Tab 1: Live Data (Conditional)
+                            NavigationRailDestination(
+                              icon: Icon(Icons.speed, color: isLocked ? disabledColor : null),
+                              label: Text(
+                                'Live Data',
+                                style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            ),
 
-                    // Tab 2: DTCs (Conditional)
-                    NavigationRailDestination(
-                      icon: Icon(Icons.healing, color: isLocked ? disabledColor : null),
-                      label: Text('DTCs', style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
+                            // Tab 2: DTCs (Conditional)
+                            NavigationRailDestination(
+                              icon: Icon(Icons.healing, color: isLocked ? disabledColor : null),
+                              label: Text(
+                                'DTCs',
+                                style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            ),
 
-                    // Tab 3: Flash (Conditional)
-                    NavigationRailDestination(
-                      icon: Icon(Icons.system_update_alt, color: isLocked ? disabledColor : null),
-                      label: Text('Flash', style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ],
-                        ),
-                      ),
+                            // Tab 3: Flash (Conditional)
+                            NavigationRailDestination(
+                              icon: Icon(Icons.system_update_alt, color: isLocked ? disabledColor : null),
+                              label: Text(
+                                'Flash',
+                                style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            ),
 
-                      // Bottom area aligned with status bar — contains theme toggle
-                      Container(
-                        height: 36,
-                        color: sidebarBg,
-                        alignment: Alignment.center,
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: Icon(widget.isDark ? Icons.light_mode : Icons.dark_mode, size: 20, color: Theme.of(context).iconTheme.color),
-                          tooltip: 'Toggle theme',
-                          onPressed: widget.onToggleTheme,
+                            // Tab 4: Settings
+                            const NavigationRailDestination(
+                              icon: Icon(Icons.settings),
+                              label: Text('Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                
+
                 const VerticalDivider(width: 1, thickness: 1),
-                
-                // --- 2. MAIN CONTENT ---
-                Expanded(child: pages[_selectedIndex]),
+
+                // --- MAIN CONTENT ---
+                Expanded(
+                  child: Stack(
+                    children: [
+                      // Main content
+                      Positioned.fill(child: pages[_selectedIndex]),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          
+
           // --- 3. BOTTOM STATUS BAR ---
           _buildStatusBar(),
         ],
@@ -170,8 +186,8 @@ class _MainShellState extends State<MainShell> {
           Icon(isConnected ? Icons.link : Icons.link_off, size: 14, color: Colors.white),
           const SizedBox(width: 8),
           Text(
-            isConnected 
-             ? "CONNECTED: ${_connectedProfile!.name} (0x${_connectedProfile!.txId.toRadixString(16).toUpperCase()})" 
+            isConnected
+             ? "CONNECTED: ${_connectedProfile!.name} (0x${_connectedProfile!.txId.toRadixString(16).toUpperCase()})"
              : "NO CONNECTION",
             style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
           ),

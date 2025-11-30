@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-ECU_EXPORT void print_ttctk_version();
+ECU_EXPORT char *get_ttctk_version();
 
 // Returns a malloc'd C string containing JSON array of mocked ECUs.
 // Caller must call free_cstring() to release memory.

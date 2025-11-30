@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
 project(ecu_models)
 
+set(CMAKE_CXX_STANDARD 17)
+
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SOURCES
-  ${SRC_DIR}/ecu_models.c
+  ${SRC_DIR}/ecu_models.cpp
 )
 
 if(WIN32)

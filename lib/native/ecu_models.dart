@@ -11,8 +11,12 @@ typedef _get_mock_ecus_dart = ffi.Pointer<ffi.Int8> Function();
 typedef _free_cstr_native = ffi.Void Function(ffi.Pointer<ffi.Int8>);
 typedef _free_cstr_dart = void Function(ffi.Pointer<ffi.Int8>);
 
+typedef _get_ttctk_version_native = ffi.Pointer<ffi.Int8> Function();
+typedef _get_ttctk_version_dart = ffi.Pointer<ffi.Int8> Function();
+
 class NativeEcuModels {
   late ffi.DynamicLibrary _lib;
+  late _get_ttctk_version_dart _getTtctkVersion;
   late _get_mock_ecus_dart _getMockEcus;
   late _free_cstr_dart _freeCstr;
   bool available = false;
@@ -27,6 +31,7 @@ class NativeEcuModels {
     try {
       name = _libraryNameForPlatform();
       _lib = ffi.DynamicLibrary.open(name);
+      _getTtctkVersion = _lib.lookupFunction<_get_ttctk_version_native, _get_ttctk_version_dart>('get_ttctk_version');
       _getMockEcus = _lib.lookupFunction<_get_mock_ecus_native, _get_mock_ecus_dart>('get_mock_ecus');
       _freeCstr = _lib.lookupFunction<_free_cstr_native, _free_cstr_dart>('free_cstring');
       available = true;
@@ -42,6 +47,9 @@ class NativeEcuModels {
     if (Platform.isMacOS) return 'libecu_models.dylib';
     throw UnsupportedError('Native ECU models not supported on this platform');
   }
+
+  // Fallback for ttctk version retrieval
+  //TODO
 
   List<EcuProfile> getMockEcusFallback() {
     // Pure Dart fallback (kept in sync with native mocked data)

@@ -1,7 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'main_shell.dart';
 
 void main() {
+  FlutterError.onError = (FlutterErrorDetails details) {
+    // Print to console and also forward to default error handler
+    debugPrint('Flutter error: ${details.exceptionAsString()}');
+    FlutterError.presentError(details);
+  };
+
+  debugPrint('Starting EcuToolkitApp');
   runApp(const EcuToolkitApp());
 }
 
@@ -13,7 +21,7 @@ class EcuToolkitApp extends StatefulWidget {
 }
 
 class _EcuToolkitAppState extends State<EcuToolkitApp> {
-  ThemeMode _themeMode = ThemeMode.dark;
+  ThemeMode _themeMode = ThemeMode.light;
 
   void _toggleTheme() {
     setState(() {
