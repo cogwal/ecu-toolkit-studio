@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../native/ecu_models.dart';
+import '../native/ttctk.dart';
 
 class AboutDialogWidget {
   static Future<void> show(BuildContext context) async {
@@ -12,14 +13,9 @@ class AboutDialogWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Version: 0.1.0'),
-            Text('TTC Toolkit Version: ${getTtctkVersionFromNative()}'),
-            const SizedBox(height: 8),
-            const Text('A ECU tooling studio.'),
-            const SizedBox(height: 8),
-            const Text('Author: Sander Walstock'),
             // TTCTK Version from native library
             FutureBuilder<String>(
-              future: Future.value(getTtctkVersionFromNative()),
+              future: Future.value(TTCTK.instance.getVersionString()),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Text('TTC Toolkit Version: Loading...');
@@ -30,6 +26,9 @@ class AboutDialogWidget {
                 }
               },
             ),
+            const SizedBox(height: 8),
+            const Text('Author: Sander Walstock'),
+
           ],
         ),
         actions: [

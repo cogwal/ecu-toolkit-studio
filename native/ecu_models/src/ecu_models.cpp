@@ -14,10 +14,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <PCANBasic.h>
-
-#  ifndef ECU_MODELS_DLL_EXPORTS
-#    define ECU_MODELS_DLL_EXPORTS
-#  endif
 #endif
 
 ECU_EXPORT char *get_ttctk_version()

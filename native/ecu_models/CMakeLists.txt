@@ -20,12 +20,6 @@ else()
   set_target_properties(ecu_models PROPERTIES OUTPUT_NAME "ecu_models" PREFIX "lib" SUFFIX ".so")
 endif()
 
-if(WIN32)
-  # When building the DLL on Windows, define ECU_MODELS_DLL_EXPORTS so
-  # the headers know to export symbols instead of importing them.
-  target_compile_definitions(ecu_models PRIVATE ECU_MODELS_DLL_EXPORTS)
-endif()
-
 # Add include directories for the third-party libraries so headers like
 # <ttctk.h> and <PCANBasic.h> can be included from `ecu_models.h`.
 target_include_directories(ecu_models

@@ -87,6 +87,6 @@ String getTtctkVersionFromNative() {
   if (ptr == ffi.nullptr) return 'Unknown';
   final cstr = ptr.cast<Utf8>();
   final dartStr = cstr.toDartString();
-  NativeEcuModels.instance._freeCstr(ptr);
+  // NativeEcuModels.instance._freeCstr(ptr);
   return dartStr;
 }

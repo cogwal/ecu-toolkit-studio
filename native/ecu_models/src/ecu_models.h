@@ -5,13 +5,9 @@
 #define ECU_MODELS_H
 
 #ifdef _WIN32
-#  ifdef ECU_MODELS_DLL_EXPORTS
-#    define ECU_EXPORT __declspec(dllexport)
-#  else
-#    define ECU_EXPORT __declspec(dllimport)
-#  endif
+#define ECU_EXPORT __declspec(dllexport)
 #else
-#  define ECU_EXPORT
+#define ECU_EXPORT
 #endif
 
 #ifdef __cplusplus
