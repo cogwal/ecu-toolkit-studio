@@ -34,51 +34,51 @@ target_include_directories(ecu_models
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/PCAN-Basic/Include
 )
 
-## Platform-specific library paths, always use shared libraries (DLL/SO)
-# keep TTCTK_LIB and PCAN_LIB variables pointing to the runtime files so existing
-# copy logic later in this file continues to work
+## Platform-specific library paths
+set(TTCTK_DLL "")
+set(PCAN_DLL "")
 set(TTCTK_LIB "")
 set(PCAN_LIB "")
-set(TTCTK_IMPLIB "")
-set(PCAN_IMPLIB "")
+set(CRYPTO_DLL "")
 if(WIN32)
-  set(TTCTK_LIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/toolkit/windows_x64/ttctk.dll)
-  set(TTCTK_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/toolkit/windows_x64/ttctk.lib)
-  set(PCAN_LIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/PCAN-Basic/x64/PCANBasic.dll)
-  set(PCAN_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/PCAN-Basic/x64//VC_LIB/PCANBasic.lib)
+  set(TTCTK_DLL ${CMAKE_CURRENT_SOURCE_DIR}/lib/toolkit/windows_x64/ttctk.dll)
+  set(TTCTK_LIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/toolkit/windows_x64/ttctk.lib)
+  set(CRYPTO_DLL ${CMAKE_CURRENT_SOURCE_DIR}/lib/toolkit/windows_x64/libcrypto-3-x64.dll)
+  set(PCAN_DLL ${CMAKE_CURRENT_SOURCE_DIR}/lib/PCAN-Basic/x64/PCANBasic.dll)
+  set(PCAN_LIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/PCAN-Basic/x64//VC_LIB/PCANBasic.lib)
 elseif(UNIX)
-  set(TTCTK_LIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/toolkit/linux_x64/libttctk.so)
+  set(TTCTK_DLL ${CMAKE_CURRENT_SOURCE_DIR}/lib/toolkit/linux_x64/libttctk.so)
   # No PCANBasic linux libs are needed, socketcan will be use instead later.
 endif()
 
 ## Create IMPORTED shared targets and link those targets so we link shared libs
 if(WIN32)
-  if(EXISTS ${TTCTK_LIB})
+  if(EXISTS ${TTCTK_DLL})
     add_library(ttctk_shared SHARED IMPORTED)
     set_target_properties(ttctk_shared PROPERTIES
-      IMPORTED_LOCATION "${TTCTK_LIB}"
-      IMPORTED_IMPLIB "${TTCTK_IMPLIB}"
+      IMPORTED_LOCATION "${TTCTK_DLL}"
+      IMPORTED_IMPLIB "${TTCTK_LIB}"
     )
-    message(STATUS "Linking TTCTK library (imported target): ${TTCTK_LIB}")
+    message(STATUS "Linking TTCTK library (imported target): ${TTCTK_DLL}")
     target_link_libraries(ecu_models PRIVATE ttctk_shared)
   endif()
 
-  if(EXISTS ${PCAN_LIB})
+  if(EXISTS ${PCAN_DLL})
     add_library(pcanbasic_shared SHARED IMPORTED)
     set_target_properties(pcanbasic_shared PROPERTIES
-      IMPORTED_LOCATION "${PCAN_LIB}"
-      IMPORTED_IMPLIB "${PCAN_IMPLIB}"
+      IMPORTED_LOCATION "${PCAN_DLL}"
+      IMPORTED_IMPLIB "${PCAN_LIB}"
     )
-    message(STATUS "Linking PCANBasic library (imported target): ${PCAN_LIB}")
+    message(STATUS "Linking PCANBasic library (imported target): ${PCAN_DLL}")
     target_link_libraries(ecu_models PRIVATE pcanbasic_shared)
   endif()
 else()
-if(EXISTS ${TTCTK_LIB})
+if(EXISTS ${TTCTK_DLL})
     add_library(ttctk_shared SHARED IMPORTED)
     set_target_properties(ttctk_shared PROPERTIES
-      IMPORTED_LOCATION "${TTCTK_LIB}"
+      IMPORTED_LOCATION "${TTCTK_DLL}"
     )
-    message(STATUS "Linking TTCTK library (imported target): ${TTCTK_LIB}")
+    message(STATUS "Linking TTCTK library (imported target): ${TTCTK_DLL}")
     target_link_libraries(ecu_models PRIVATE ttctk_shared)
   endif()
   # PCANBasic is not used on Unix (socketcan is used instead)
@@ -93,14 +93,14 @@ include(GNUInstallDirs)
 # Location to install the library
 ## Copy to build for the test executable
 if(WIN32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/build")
-  if(EXISTS ${TTCTK_LIB})
+  if(EXISTS ${TTCTK_DLL})
     add_custom_command(TARGET ecu_models_test POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${TTCTK_LIB}" "${CMAKE_CURRENT_SOURCE_DIR}/build"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${TTCTK_DLL}" "${CMAKE_CURRENT_SOURCE_DIR}/build"
     )
   endif()
-  if(EXISTS ${PCAN_LIB})
+  if(EXISTS ${PCAN_DLL})
     add_custom_command(TARGET ecu_models_test POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PCAN_LIB}" "${CMAKE_CURRENT_SOURCE_DIR}/build"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PCAN_DLL}" "${CMAKE_CURRENT_SOURCE_DIR}/build"
     )
   endif()
 endif()
@@ -109,14 +109,19 @@ set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
 ## Copy runtime DLLs for Windows to the application runner path if present
 if(WIN32 AND EXISTS "${PROJECT_ROOT}/build/windows/x64/runner/Debug")
-  if(EXISTS ${TTCTK_LIB})
+  if(EXISTS ${TTCTK_DLL})
     add_custom_command(TARGET ecu_models POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${TTCTK_LIB}" "${PROJECT_ROOT}/build/windows/x64/runner/Debug"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${TTCTK_DLL}" "${PROJECT_ROOT}/build/windows/x64/runner/Debug"
     )
   endif()
-  if(EXISTS ${PCAN_LIB})
+  if(EXISTS ${PCAN_DLL})
     add_custom_command(TARGET ecu_models POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PCAN_LIB}" "${PROJECT_ROOT}/build/windows/x64/runner/Debug"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PCAN_DLL}" "${PROJECT_ROOT}/build/windows/x64/runner/Debug"
+    )
+  endif()
+  if(EXISTS ${CRYPTO_DLL})
+    add_custom_command(TARGET ecu_models POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CRYPTO_DLL}" "${PROJECT_ROOT}/build/windows/x64/runner/Debug"
     )
   endif()
 endif()
