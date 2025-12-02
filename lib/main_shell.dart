@@ -46,10 +46,7 @@ class _MainShellState extends State<MainShell> {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            "Please connect to an ECU to access this tool.",
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text("Please connect to an ECU to access this tool.", style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.redAccent,
           duration: Duration(milliseconds: 1500),
           behavior: SnackBarBehavior.floating,
@@ -69,7 +66,7 @@ class _MainShellState extends State<MainShell> {
     // Define pages
     final List<Widget> pages = [
       ConnectionPage(onEcuConnected: _handleConnection),
-      LiveDashboardPage(profile: _connectedProfile),
+      TargetInfoPage(profile: _connectedProfile),
       DtcPage(profile: _connectedProfile),
       FlashWizardPage(profile: _connectedProfile),
       // Settings Page (full-screen like other pages)
@@ -114,11 +111,11 @@ class _MainShellState extends State<MainShell> {
                               label: Text('Connect', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                             ),
 
-                            // Tab 1: Live Data (Conditional)
+                            // Tab 1: Target Info (Conditional)
                             NavigationRailDestination(
-                              icon: Icon(Icons.speed, color: isLocked ? disabledColor : null),
+                              icon: Icon(Icons.info_outline, color: isLocked ? disabledColor : null),
                               label: Text(
-                                'Live Data',
+                                'Target Info',
                                 style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12),
                               ),
                             ),
@@ -186,9 +183,7 @@ class _MainShellState extends State<MainShell> {
           Icon(isConnected ? Icons.link : Icons.link_off, size: 14, color: Colors.white),
           const SizedBox(width: 8),
           Text(
-            isConnected
-             ? "CONNECTED: ${_connectedProfile!.name} (0x${_connectedProfile!.txId.toRadixString(16).toUpperCase()})"
-             : "NO CONNECTION",
+            isConnected ? "CONNECTED: ${_connectedProfile!.name} (0x${_connectedProfile!.txId.toRadixString(16).toUpperCase()})" : "NO CONNECTION",
             style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
           ),
           const Spacer(),

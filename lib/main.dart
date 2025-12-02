@@ -1,6 +1,7 @@
-import 'dart:async';
+import 'dart:io' as io;
 import 'package:flutter/material.dart';
 import 'main_shell.dart';
+import 'native/ttctk.dart';
 
 void main() {
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -10,7 +11,93 @@ void main() {
   };
 
   debugPrint('Starting EcuToolkitApp');
+
+  // Initialize native libraries here
+  TTCTK.instance.loadLibrary();
+
+  // If the native ttctk library failed to load, show an error window and do not start the main app.
+  if (!TTCTK.instance.available) {
+    runApp(const _ToolkitMissingApp());
+    return;
+  }
+
+  // Initialize the toolkit (logging, environment). Treat non-zero return as error.
+  final initStatus = TTCTK.instance.initLibrary(5, null); // Log level 5 (debug), no log file
+  if (initStatus != 0) {
+    runApp(_ToolkitInitFailedApp(status: initStatus));
+    return;
+  }
+
   runApp(const EcuToolkitApp());
+}
+
+class _ToolkitMissingApp extends StatelessWidget {
+  const _ToolkitMissingApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'ECU Toolkit Studio - Missing Library',
+      home: Scaffold(
+        appBar: AppBar(title: const Text('ECU Toolkit Studio')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 12),
+                const Text('TTC Toolkit library not found', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                const Text('The native TTC Toolkit library could not be loaded.\nPlease ensure the toolkit is installed and the runtime library is available for this application.', textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => io.exit(1),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolkitInitFailedApp extends StatelessWidget {
+  final int status;
+  const _ToolkitInitFailedApp({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'ECU Toolkit Studio - Initialization Failed',
+      home: Scaffold(
+        appBar: AppBar(title: const Text('ECU Toolkit Studio')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error, size: 64, color: Colors.red),
+                const SizedBox(height: 12),
+                const Text('TTC Toolkit initialization failed', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text('Toolkit initialization returned status code: $status', textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => io.exit(1),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class EcuToolkitApp extends StatefulWidget {
