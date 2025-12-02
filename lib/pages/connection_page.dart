@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:ffi' as ffi;
+import 'package:ffi/ffi.dart';
 import '../ecu_model.dart';
 import '../native/ecu_models.dart';
+import '../native/ttctk.dart';
 
 class ConnectionPage extends StatefulWidget {
   final Function(EcuProfile) onEcuConnected;
@@ -16,9 +19,13 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   late TabController _tabController;
   bool _isScanning = false;
   List<EcuProfile> _discoveredEcus = [];
-  
+
   final TextEditingController _txIdController = TextEditingController(text: "7E0");
   final TextEditingController _rxIdController = TextEditingController(text: "7E8");
+
+  // CAN interface handle
+  int? _canHandle;
+  String _canStatus = "Not registered";
 
   @override
   void initState() {
@@ -62,6 +69,74 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     });
   }
 
+  void _registerCanInterface() async {
+    try {
+      final canInterface = calloc<TkCanInterfaceType>();
+      final handlePtr = calloc<ffi.Uint32>();
+
+      try {
+        // Configure PEAK interface with default values
+        canInterface.ref.type = TK_CAN_INTERFACE_CATEGORY_PEAK;
+        canInterface.ref.peak.channel = PCAN_USBBUS1;
+
+        // Register the interface
+        final status = TTCTK.instance.registerCanInterface(canInterface.cast(), TK_CAN_BITRATE_500K, handlePtr.cast());
+
+        if (status == 0) {
+          setState(() {
+            _canHandle = handlePtr.value;
+            _canStatus = "Registered (Handle: $_canHandle)";
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CAN interface registered successfully"), backgroundColor: Colors.green));
+          }
+        } else {
+          setState(() {
+            _canStatus = "Registration failed (Status: $status)";
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to register CAN interface: $status")));
+          }
+        }
+      } finally {
+        calloc.free(canInterface);
+        calloc.free(handlePtr);
+      }
+    } catch (e) {
+      setState(() {
+        _canStatus = "Error: $e";
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Exception: $e")));
+      }
+    }
+  }
+
+  void _deregisterCanInterface() {
+    if (_canHandle == null) return;
+
+    try {
+      final status = TTCTK.instance.deRegisterCanInterface(_canHandle!);
+      if (status == 0) {
+        setState(() {
+          _canHandle = null;
+          _canStatus = "Not registered";
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CAN interface deregistered"), backgroundColor: Colors.green));
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to deregister: $status")));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Exception: $e")));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -75,51 +150,110 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
           Text("Establish Connection", style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 24),
 
-          // Wide layout: show two panels side-by-side. Narrow layout: keep tabs.
+          // Wide layout: Left column (CAN + Direct Connect), Right column (Discovery full height)
           if (isWide)
-            SizedBox(
-              height: 460,
+            Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: _panelCard(child: _buildScannerTab(), title: "Network Discovery")),
+                  // Left side: CAN Interface + Direct Connect stacked
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildCanInterfaceSection(),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: _panelCard(child: _buildDirectTab(), title: "Direct Connect"),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _panelCard(child: _buildDirectTab(), title: "Direct Connect")),
+                  // Right side: Discovery (full height)
+                  Expanded(
+                    child: _panelCard(child: _buildScannerTab(), title: "Network Discovery"),
+                  ),
                 ],
               ),
             )
           else
-            Container(
-              width: 400,
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: Column(
-                children: [
-                  TabBar(
-                    controller: _tabController,
-                    indicatorColor: Theme.of(context).primaryColor,
-                    dividerColor: Colors.transparent,
-                    tabs: const [
-                      Tab(text: "Network Discovery"),
-                      Tab(text: "Direct Connect"),
+            // Narrow layout: keep original tab-based layout
+            Column(
+              children: [
+                _buildCanInterfaceSection(),
+                const SizedBox(height: 24),
+                Container(
+                  width: 400,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    children: [
+                      TabBar(
+                        controller: _tabController,
+                        indicatorColor: Theme.of(context).primaryColor,
+                        dividerColor: Colors.transparent,
+                        tabs: const [
+                          Tab(text: "Network Discovery"),
+                          Tab(text: "Direct Connect"),
+                        ],
+                      ),
+                      SizedBox(
+                        height: 350,
+                        child: TabBarView(controller: _tabController, children: [_buildScannerTab(), _buildDirectTab()]),
+                      ),
                     ],
                   ),
-                  SizedBox(
-                    height: 350, // Fixed height for the tab content area
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildScannerTab(),
-                        _buildDirectTab(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCanInterfaceSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10),
+      ),
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("CAN Interface", style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text("Status: ", style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                _canStatus,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: _canHandle != null ? Colors.green : Colors.grey, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: _canHandle == null ? _registerCanInterface : null,
+                icon: const Icon(Icons.usb),
+                label: const Text("Register PEAK USB 1 (500K)"),
+              ),
+              const SizedBox(width: 12),
+              if (_canHandle != null)
+                ElevatedButton.icon(
+                  onPressed: _deregisterCanInterface,
+                  icon: const Icon(Icons.close),
+                  label: const Text("Deregister"),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red.withOpacity(0.7)),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -136,10 +270,11 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (title != null) Padding(
-            padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
-            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
-          ),
+          if (title != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
+              child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+            ),
           Expanded(child: child),
         ],
       ),
@@ -155,9 +290,9 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _isScanning ? null : _startNetworkScan,
-              icon: _isScanning 
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.search),
+              icon: _isScanning
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.search),
               label: Text(_isScanning ? "Scanning..." : "Discover ECUs"),
             ),
           ),
@@ -165,23 +300,22 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
           const Divider(),
           Expanded(
             child: _discoveredEcus.isEmpty && !_isScanning
-              ? const Center(child: Text("No ECUs found. Try again.", style: TextStyle(color: Colors.grey)))
-              : ListView.builder(
-                  itemCount: _discoveredEcus.length,
-                  itemBuilder: (context, index) {
-                    final ecu = _discoveredEcus[index];
-                    return ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(ecu.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text("Tx: 0x${ecu.txId.toRadixString(16)} | Rx: 0x${ecu.rxId.toRadixString(16)}"),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.arrow_forward_ios, size: 14),
-                        onPressed: () => widget.onEcuConnected(ecu),
-                      ),
-                    );
-                  },
-                ),
+                ? const Center(
+                    child: Text("No ECUs found. Try again.", style: TextStyle(color: Colors.grey)),
+                  )
+                : ListView.builder(
+                    itemCount: _discoveredEcus.length,
+                    itemBuilder: (context, index) {
+                      final ecu = _discoveredEcus[index];
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(ecu.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text("Tx: 0x${ecu.txId.toRadixString(16)} | Rx: 0x${ecu.rxId.toRadixString(16)}"),
+                        trailing: IconButton(icon: const Icon(Icons.arrow_forward_ios, size: 14), onPressed: () => widget.onEcuConnected(ecu)),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

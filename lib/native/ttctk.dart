@@ -23,6 +23,47 @@ import 'package:flutter/foundation.dart' show debugPrint;
 const int TK_CAN_FD_FRAME_MAX_LENGTH = 64;
 const int TK_TARGET_ADDRESS_CONFIG_SIZE_MAX = 256;
 const int TK_TARGET_PROPERTIES_CONFIG_SIZE_MAX = 256;
+const int TK_CAN_INTERFACE_CONFIG_SIZE_MAX = 256;
+
+// CAN Bitrates (from ttctk_can.h)
+const int TK_CAN_BITRATE_5K = 5000;
+const int TK_CAN_BITRATE_10K = 10000;
+const int TK_CAN_BITRATE_20K = 20000;
+const int TK_CAN_BITRATE_50K = 50000;
+const int TK_CAN_BITRATE_100K = 100000;
+const int TK_CAN_BITRATE_125K = 125000;
+const int TK_CAN_BITRATE_250K = 250000;
+const int TK_CAN_BITRATE_500K = 500000;
+const int TK_CAN_BITRATE_1M = 1000000;
+
+// CAN Interface Categories (from ttctk_can.h)
+const int TK_CAN_INTERFACE_CATEGORY_CUSTOM = 0;
+const int TK_CAN_INTERFACE_CATEGORY_PEAK = 1;
+const int TK_CAN_INTERFACE_CATEGORY_SOCKETCAN = 2;
+
+// CAN Frame Formats (from ttctk_can.h)
+const int TK_CAN_FRAME_FORMAT_BASE = 0;
+const int TK_CAN_FRAME_FORMAT_FD_BASE = 1;
+const int TK_CAN_FRAME_FORMAT_EXTENDED = 2;
+const int TK_CAN_FRAME_FORMAT_FD_EXTENDED = 3;
+
+// PCAN USB Channels (from PCANBasic.h)
+const int PCAN_USBBUS1 = 0x51;
+const int PCAN_USBBUS2 = 0x52;
+const int PCAN_USBBUS3 = 0x53;
+const int PCAN_USBBUS4 = 0x54;
+const int PCAN_USBBUS5 = 0x55;
+const int PCAN_USBBUS6 = 0x56;
+const int PCAN_USBBUS7 = 0x57;
+const int PCAN_USBBUS8 = 0x58;
+const int PCAN_USBBUS9 = 0x59;
+const int PCAN_USBBUS10 = 0x50A;
+const int PCAN_USBBUS11 = 0x50B;
+const int PCAN_USBBUS12 = 0x50C;
+const int PCAN_USBBUS13 = 0x50D;
+const int PCAN_USBBUS14 = 0x50E;
+const int PCAN_USBBUS15 = 0x50F;
+const int PCAN_USBBUS16 = 0x510;
 
 // Typedefs
 typedef TkStatusType = ffi.Uint32; // TkStatusType is uint32
@@ -131,6 +172,22 @@ final class TkCanIdPair extends ffi.Struct {
 
   @ffi.Uint32()
   external int rxId;
+}
+
+// Peak CAN interface configuration
+final class TkCanInterfaceConfigPeakType extends ffi.Struct {
+  @ffi.Uint16()
+  external int channel;
+}
+
+// CAN interface union wrapper (simplified for Dart FFI)
+final class TkCanInterfaceType extends ffi.Struct {
+  @ffi.Uint32()
+  external int type; // TkCanInterfaceCategoryType
+
+  // For simplicity, we use peak config directly.
+  // In a full implementation, this would be a union.
+  external TkCanInterfaceConfigPeakType peak;
 }
 
 // ---------------------------------------------------------------------------
@@ -289,189 +346,63 @@ class TTCTK {
     try {
       _lib = ffi.DynamicLibrary.open(name);
       // Common
-      _tkGetVersion = _lib.lookupFunction<_c_TK_GetVersion, _TK_GetVersion>(
-        'TK_GetVersion',
-      );
-      _tkGetVersionString = _lib
-          .lookupFunction<_c_TK_GetVersionString, _TK_GetVersionString>(
-            'TK_GetVersionString',
-          );
-      _tkGetBuildDate = _lib
-          .lookupFunction<_c_TK_GetBuildDate, _TK_GetBuildDate>(
-            'TK_GetBuildDate',
-          );
-      _tkGetBuildTime = _lib
-          .lookupFunction<_c_TK_GetBuildTime, _TK_GetBuildTime>(
-            'TK_GetBuildTime',
-          );
+      _tkGetVersion = _lib.lookupFunction<_c_TK_GetVersion, _TK_GetVersion>('TK_GetVersion');
+      _tkGetVersionString = _lib.lookupFunction<_c_TK_GetVersionString, _TK_GetVersionString>('TK_GetVersionString');
+      _tkGetBuildDate = _lib.lookupFunction<_c_TK_GetBuildDate, _TK_GetBuildDate>('TK_GetBuildDate');
+      _tkGetBuildTime = _lib.lookupFunction<_c_TK_GetBuildTime, _TK_GetBuildTime>('TK_GetBuildTime');
       _tkInit = _lib.lookupFunction<_c_TK_Init, _TK_Init>('TK_Init');
       _tkDeInit = _lib.lookupFunction<_c_TK_DeInit, _TK_DeInit>('TK_DeInit');
-      _tkFreeResource = _lib
-          .lookupFunction<_c_TK_FreeResource, _TK_FreeResource>(
-            'TK_FreeResource',
-          );
+      _tkFreeResource = _lib.lookupFunction<_c_TK_FreeResource, _TK_FreeResource>('TK_FreeResource');
 
       // CAN
-      _tkRegisterCanInterface = _lib
-          .lookupFunction<_c_TK_RegisterCanInterface, _TK_RegisterCanInterface>(
-            'TK_RegisterCanInterface',
-          );
-      _tkDeRegisterCanInterface = _lib
-          .lookupFunction<
-            _c_TK_DeRegisterCanInterface,
-            _TK_DeRegisterCanInterface
-          >('TK_DeRegisterCanInterface');
-      _tkNotifyCanFrameReceived = _lib
-          .lookupFunction<
-            _c_TK_NotifyCanFrameReceived,
-            _TK_NotifyCanFrameReceived
-          >('TK_NotifyCanFrameReceived');
-      _tkAddCanIdPair = _lib
-          .lookupFunction<_c_TK_AddCanIdPair, _TK_AddCanIdPair>(
-            'TK_AddCanIdPair',
-          );
-      _tkRemoveCanIdPair = _lib
-          .lookupFunction<_c_TK_RemoveCanIdPair, _TK_RemoveCanIdPair>(
-            'TK_RemoveCanIdPair',
-          );
-      _tkTransmitCanFrame = _lib
-          .lookupFunction<_c_TK_TransmitCanFrame, _TK_TransmitCanFrame>(
-            'TK_TransmitCanFrame',
-          );
+      _tkRegisterCanInterface = _lib.lookupFunction<_c_TK_RegisterCanInterface, _TK_RegisterCanInterface>('TK_RegisterCanInterface');
+      _tkDeRegisterCanInterface = _lib.lookupFunction<_c_TK_DeRegisterCanInterface, _TK_DeRegisterCanInterface>('TK_DeRegisterCanInterface');
+      _tkNotifyCanFrameReceived = _lib.lookupFunction<_c_TK_NotifyCanFrameReceived, _TK_NotifyCanFrameReceived>('TK_NotifyCanFrameReceived');
+      _tkAddCanIdPair = _lib.lookupFunction<_c_TK_AddCanIdPair, _TK_AddCanIdPair>('TK_AddCanIdPair');
+      _tkRemoveCanIdPair = _lib.lookupFunction<_c_TK_RemoveCanIdPair, _TK_RemoveCanIdPair>('TK_RemoveCanIdPair');
+      _tkTransmitCanFrame = _lib.lookupFunction<_c_TK_TransmitCanFrame, _TK_TransmitCanFrame>('TK_TransmitCanFrame');
 
       // Targets
-      _tkAddTarget = _lib.lookupFunction<_c_TK_AddTarget, _TK_AddTarget>(
-        'TK_AddTarget',
-      );
-      _tkRemoveTarget = _lib
-          .lookupFunction<_c_TK_RemoveTarget, _TK_RemoveTarget>(
-            'TK_RemoveTarget',
-          );
-      _tkSetProgrammingRoutines = _lib
-          .lookupFunction<
-            _c_TK_SetProgrammingRoutines,
-            _TK_SetProgrammingRoutines
-          >('TK_SetProgrammingRoutines');
-      _tkSetTargetProperties = _lib
-          .lookupFunction<_c_TK_SetTargetProperties, _TK_SetTargetProperties>(
-            'TK_SetTargetProperties',
-          );
+      _tkAddTarget = _lib.lookupFunction<_c_TK_AddTarget, _TK_AddTarget>('TK_AddTarget');
+      _tkRemoveTarget = _lib.lookupFunction<_c_TK_RemoveTarget, _TK_RemoveTarget>('TK_RemoveTarget');
+      _tkSetProgrammingRoutines = _lib.lookupFunction<_c_TK_SetProgrammingRoutines, _TK_SetProgrammingRoutines>('TK_SetProgrammingRoutines');
+      _tkSetTargetProperties = _lib.lookupFunction<_c_TK_SetTargetProperties, _TK_SetTargetProperties>('TK_SetTargetProperties');
 
       // Program API
-      _tkAsyncDiscover = _lib
-          .lookupFunction<_c_TK_AsyncDiscover, _TK_AsyncDiscover>(
-            'TK_AsyncDiscover',
-          );
-      _tkAwaitDiscover = _lib
-          .lookupFunction<_c_TK_AwaitDiscover, _TK_AwaitDiscover>(
-            'TK_AwaitDiscover',
-          );
-      _tkAsyncConnect = _lib
-          .lookupFunction<_c_TK_AsyncConnect, _TK_AsyncConnect>(
-            'TK_AsyncConnect',
-          );
-      _tkAwaitConnect = _lib
-          .lookupFunction<_c_TK_AwaitConnect, _TK_AwaitConnect>(
-            'TK_AwaitConnect',
-          );
-      _tkWriteFromFile = _lib
-          .lookupFunction<_c_TK_WriteFromFile, _TK_WriteFromFile>(
-            'TK_WriteFromFile',
-          );
-      _tkWriteFromFileSigned = _lib
-          .lookupFunction<_c_TK_WriteFromFileSigned, _TK_WriteFromFileSigned>(
-            'TK_WriteFromFileSigned',
-          );
-      _tkEraseRange = _lib.lookupFunction<_c_TK_EraseRange, _TK_EraseRange>(
-        'TK_EraseRange',
-      );
-      _tkReadToMemoryBuffer = _lib
-          .lookupFunction<_c_TK_ReadToMemoryBuffer, _TK_ReadToMemoryBuffer>(
-            'TK_ReadToMemoryBuffer',
-          );
-      _tkResetTarget = _lib.lookupFunction<_c_TK_ResetTarget, _TK_ResetTarget>(
-        'TK_ResetTarget',
-      );
+      _tkAsyncDiscover = _lib.lookupFunction<_c_TK_AsyncDiscover, _TK_AsyncDiscover>('TK_AsyncDiscover');
+      _tkAwaitDiscover = _lib.lookupFunction<_c_TK_AwaitDiscover, _TK_AwaitDiscover>('TK_AwaitDiscover');
+      _tkAsyncConnect = _lib.lookupFunction<_c_TK_AsyncConnect, _TK_AsyncConnect>('TK_AsyncConnect');
+      _tkAwaitConnect = _lib.lookupFunction<_c_TK_AwaitConnect, _TK_AwaitConnect>('TK_AwaitConnect');
+      _tkWriteFromFile = _lib.lookupFunction<_c_TK_WriteFromFile, _TK_WriteFromFile>('TK_WriteFromFile');
+      _tkWriteFromFileSigned = _lib.lookupFunction<_c_TK_WriteFromFileSigned, _TK_WriteFromFileSigned>('TK_WriteFromFileSigned');
+      _tkEraseRange = _lib.lookupFunction<_c_TK_EraseRange, _TK_EraseRange>('TK_EraseRange');
+      _tkReadToMemoryBuffer = _lib.lookupFunction<_c_TK_ReadToMemoryBuffer, _TK_ReadToMemoryBuffer>('TK_ReadToMemoryBuffer');
+      _tkResetTarget = _lib.lookupFunction<_c_TK_ResetTarget, _TK_ResetTarget>('TK_ResetTarget');
       // Data API
-      _tkReadDataByIdToMemoryBuffer = _lib
-          .lookupFunction<
-            _c_TK_ReadDataByIdToMemoryBuffer,
-            _TK_ReadDataByIdToMemoryBuffer
-          >('TK_ReadDataByIdToMemoryBuffer');
-      _tkWriteDataByIdFromMemoryBuffer = _lib
-          .lookupFunction<
-            _c_TK_WriteDataByIdFromMemoryBuffer,
-            _TK_WriteDataByIdFromMemoryBuffer
-          >('TK_WriteDataByIdFromMemoryBuffer');
-      _tkGetBootloaderVersion = _lib
-          .lookupFunction<_c_TK_GetBootloaderVersion, _TK_GetBootloaderVersion>(
-            'TK_GetBootloaderVersion',
-          );
-      _tkGetBootloaderBuildDate = _lib
-          .lookupFunction<
-            _c_TK_GetBootloaderBuildDate,
-            _TK_GetBootloaderBuildDate
-          >('TK_GetBootloaderBuildDate');
-      _tkGetApplicationVersion = _lib
-          .lookupFunction<
-            _c_TK_GetApplicationVersion,
-            _TK_GetApplicationVersion
-          >('TK_GetApplicationVersion');
-      _tkGetApplicationBuildDate = _lib
-          .lookupFunction<
-            _c_TK_GetApplicationBuildDate,
-            _TK_GetApplicationBuildDate
-          >('TK_GetApplicationBuildDate');
-      _tkGetHsmFirmwareVersion = _lib
-          .lookupFunction<
-            _c_TK_GetHsmFirmwareVersion,
-            _TK_GetHsmFirmwareVersion
-          >('TK_GetHsmFirmwareVersion');
-      _tkGetHsmFirmwareBuildDate = _lib
-          .lookupFunction<
-            _c_TK_GetHsmFirmwareBuildDate,
-            _TK_GetHsmFirmwareBuildDate
-          >('TK_GetHsmFirmwareBuildDate');
-      _tkGetActiveDiagnosticSessionType = _lib
-          .lookupFunction<
-            _c_TK_GetActiveDiagnosticSessionType,
-            _TK_GetActiveDiagnosticSessionType
-          >('TK_GetActiveDiagnosticSessionType');
-      _tkGetDeviceSerialNumber = _lib
-          .lookupFunction<
-            _c_TK_GetDeviceSerialNumber,
-            _TK_GetDeviceSerialNumber
-          >('TK_GetDeviceSerialNumber');
-      _tkGetBoardSerialNumber = _lib
-          .lookupFunction<_c_TK_GetBoardSerialNumber, _TK_GetBoardSerialNumber>(
-            'TK_GetBoardSerialNumber',
-          );
-      _tkGetProductionCode = _lib
-          .lookupFunction<_c_TK_GetProductionCode, _TK_GetProductionCode>(
-            'TK_GetProductionCode',
-          );
-      _tkGetMacAddress = _lib
-          .lookupFunction<_c_TK_GetMacAddress, _TK_GetMacAddress>(
-            'TK_GetMacAddress',
-          );
-      _tkGetHardwareType = _lib
-          .lookupFunction<_c_TK_GetHardwareType, _TK_GetHardwareType>(
-            'TK_GetHardwareType',
-          );
-      _tkGetCybersecurityStatus = _lib
-          .lookupFunction<
-            _c_TK_GetCybersecurityStatus,
-            _TK_GetCybersecurityStatus
-          >('TK_GetCybersecurityStatus');
-      _tkGetEccCheck = _lib.lookupFunction<_c_TK_GetEccCheck, _TK_GetEccCheck>(
-        'TK_GetEccCheck',
+      _tkReadDataByIdToMemoryBuffer = _lib.lookupFunction<_c_TK_ReadDataByIdToMemoryBuffer, _TK_ReadDataByIdToMemoryBuffer>('TK_ReadDataByIdToMemoryBuffer');
+      _tkWriteDataByIdFromMemoryBuffer = _lib.lookupFunction<_c_TK_WriteDataByIdFromMemoryBuffer, _TK_WriteDataByIdFromMemoryBuffer>(
+        'TK_WriteDataByIdFromMemoryBuffer',
       );
+      _tkGetBootloaderVersion = _lib.lookupFunction<_c_TK_GetBootloaderVersion, _TK_GetBootloaderVersion>('TK_GetBootloaderVersion');
+      _tkGetBootloaderBuildDate = _lib.lookupFunction<_c_TK_GetBootloaderBuildDate, _TK_GetBootloaderBuildDate>('TK_GetBootloaderBuildDate');
+      _tkGetApplicationVersion = _lib.lookupFunction<_c_TK_GetApplicationVersion, _TK_GetApplicationVersion>('TK_GetApplicationVersion');
+      _tkGetApplicationBuildDate = _lib.lookupFunction<_c_TK_GetApplicationBuildDate, _TK_GetApplicationBuildDate>('TK_GetApplicationBuildDate');
+      _tkGetHsmFirmwareVersion = _lib.lookupFunction<_c_TK_GetHsmFirmwareVersion, _TK_GetHsmFirmwareVersion>('TK_GetHsmFirmwareVersion');
+      _tkGetHsmFirmwareBuildDate = _lib.lookupFunction<_c_TK_GetHsmFirmwareBuildDate, _TK_GetHsmFirmwareBuildDate>('TK_GetHsmFirmwareBuildDate');
+      _tkGetActiveDiagnosticSessionType = _lib.lookupFunction<_c_TK_GetActiveDiagnosticSessionType, _TK_GetActiveDiagnosticSessionType>(
+        'TK_GetActiveDiagnosticSessionType',
+      );
+      _tkGetDeviceSerialNumber = _lib.lookupFunction<_c_TK_GetDeviceSerialNumber, _TK_GetDeviceSerialNumber>('TK_GetDeviceSerialNumber');
+      _tkGetBoardSerialNumber = _lib.lookupFunction<_c_TK_GetBoardSerialNumber, _TK_GetBoardSerialNumber>('TK_GetBoardSerialNumber');
+      _tkGetProductionCode = _lib.lookupFunction<_c_TK_GetProductionCode, _TK_GetProductionCode>('TK_GetProductionCode');
+      _tkGetMacAddress = _lib.lookupFunction<_c_TK_GetMacAddress, _TK_GetMacAddress>('TK_GetMacAddress');
+      _tkGetHardwareType = _lib.lookupFunction<_c_TK_GetHardwareType, _TK_GetHardwareType>('TK_GetHardwareType');
+      _tkGetCybersecurityStatus = _lib.lookupFunction<_c_TK_GetCybersecurityStatus, _TK_GetCybersecurityStatus>('TK_GetCybersecurityStatus');
+      _tkGetEccCheck = _lib.lookupFunction<_c_TK_GetEccCheck, _TK_GetEccCheck>('TK_GetEccCheck');
 
       available = true;
     } catch (e, s) {
-      debugPrint(
-        'TTCTK dynamic library ($name) failed to load; some functions will be unavailable: $e\n$s',
-      );
+      debugPrint('TTCTK dynamic library ($name) failed to load; some functions will be unavailable: $e\n$s');
       available = false;
     }
   }
@@ -479,10 +410,7 @@ class TTCTK {
   // -------------------------------------------------------------------------
   // Safe helpers for getting string resources
   // -------------------------------------------------------------------------
-  String? _callStringOut(
-    ffi.Pointer<ffi.Pointer<ffi.Int8>> outPtr,
-    int Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>) fn,
-  ) {
+  String? _callStringOut(ffi.Pointer<ffi.Pointer<ffi.Int8>> outPtr, int Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>) fn) {
     if (!available) return null;
     final status = fn(outPtr);
     if (status != 0) return null; // not OK
@@ -547,20 +475,10 @@ class TTCTK {
   // -------------------------------------------------------------------------
   // Data helpers for reading/writing DIDs and retrieving target metadata
   // -------------------------------------------------------------------------
-  int readDataByIdToMemoryBuffer(
-    int handle,
-    int id,
-    ffi.Pointer<ffi.Pointer<ffi.Uint8>> outBuffer,
-    ffi.Pointer<ffi.Uint32> outBufferSize,
-  ) {
+  int readDataByIdToMemoryBuffer(int handle, int id, ffi.Pointer<ffi.Pointer<ffi.Uint8>> outBuffer, ffi.Pointer<ffi.Uint32> outBufferSize) {
     loadLibrary();
     if (!available) return -1;
-    return _tkReadDataByIdToMemoryBuffer(
-      handle,
-      id,
-      outBuffer.cast(),
-      outBufferSize.cast(),
-    );
+    return _tkReadDataByIdToMemoryBuffer(handle, id, outBuffer.cast(), outBufferSize.cast());
   }
 
   List<int>? readDataByIdAsList(int handle, int id) {
@@ -569,12 +487,7 @@ class TTCTK {
     final outBuffer = calloc<ffi.Pointer<ffi.Uint8>>();
     final outSize = calloc<ffi.Uint32>();
     try {
-      final status = _tkReadDataByIdToMemoryBuffer(
-        handle,
-        id,
-        outBuffer.cast(),
-        outSize.cast(),
-      );
+      final status = _tkReadDataByIdToMemoryBuffer(handle, id, outBuffer.cast(), outSize.cast());
       if (status != 0) return null;
       final bufPtr = outBuffer.value;
       if (bufPtr == ffi.nullptr) return null;
@@ -595,12 +508,7 @@ class TTCTK {
     try {
       final typed = ptr.asTypedList(data.length);
       typed.setAll(0, data);
-      return _tkWriteDataByIdFromMemoryBuffer(
-        handle,
-        id,
-        ptr.cast(),
-        data.length,
-      );
+      return _tkWriteDataByIdFromMemoryBuffer(handle, id, ptr.cast(), data.length);
     } finally {
       calloc.free(ptr);
     }
@@ -843,10 +751,7 @@ class TTCTK {
     try {
       final st = _tkGetEccCheck(handle, ptr.cast());
       if (st != 0) return null;
-      return {
-        'errorPresented': ptr.ref.errorPresented != 0,
-        'errorAddress': ptr.ref.errorAddress,
-      };
+      return {'errorPresented': ptr.ref.errorPresented != 0, 'errorAddress': ptr.ref.errorAddress};
     } finally {
       calloc.free(ptr);
     }
@@ -856,9 +761,7 @@ class TTCTK {
   int initLibrary(int logLevel, String? logFilePath) {
     loadLibrary();
     if (!available) return -1; // or some error
-    final filePtr = logFilePath == null
-        ? ffi.nullptr
-        : logFilePath.toNativeUtf8();
+    final filePtr = logFilePath == null ? ffi.nullptr : logFilePath.toNativeUtf8();
     try {
       return _tkInit(logLevel, filePtr.cast());
     } finally {
@@ -882,18 +785,10 @@ class TTCTK {
   // -------------------------------------------------------------------------
   // CAN helpers
   // -------------------------------------------------------------------------
-  int registerCanInterface(
-    ffi.Pointer<ffi.Void> canInterface,
-    int bitrate,
-    ffi.Pointer<ffi.Uint32> handlePtr,
-  ) {
+  int registerCanInterface(ffi.Pointer<ffi.Void> canInterface, int bitrate, ffi.Pointer<ffi.Uint32> handlePtr) {
     loadLibrary();
     if (!available) return -1;
-    return _tkRegisterCanInterface(
-      canInterface.cast(),
-      bitrate,
-      handlePtr.cast(),
-    );
+    return _tkRegisterCanInterface(canInterface.cast(), bitrate, handlePtr.cast());
   }
 
   int deRegisterCanInterface(int handle) {
@@ -950,10 +845,8 @@ class TTCTK {
 
       ffiAddr.ref.udsOnCan.canCustom.txId = addr.udsOnCan.canCustom.txId;
       ffiAddr.ref.udsOnCan.canCustom.rxId = addr.udsOnCan.canCustom.rxId;
-      ffiAddr.ref.udsOnCan.canCustom.txFormat =
-          addr.udsOnCan.canCustom.txFormat;
-      ffiAddr.ref.udsOnCan.canCustom.rxFormat =
-          addr.udsOnCan.canCustom.rxFormat;
+      ffiAddr.ref.udsOnCan.canCustom.txFormat = addr.udsOnCan.canCustom.txFormat;
+      ffiAddr.ref.udsOnCan.canCustom.rxFormat = addr.udsOnCan.canCustom.rxFormat;
 
       final status = _tkAddTarget(ffiAddr.cast(), outHandle);
       final handle = outHandle.value;
@@ -980,10 +873,7 @@ class TTCTK {
     }
   }
 
-  int setTargetProperties(
-    int handle,
-    ffi.Pointer<TkTargetPropertiesType> props,
-  ) {
+  int setTargetProperties(int handle, ffi.Pointer<TkTargetPropertiesType> props) {
     loadLibrary();
     if (!available) return -1;
     return _tkSetTargetProperties(handle, props.cast());
@@ -995,10 +885,7 @@ class TTCTK {
     return _tkAsyncDiscover(durationMs);
   }
 
-  int awaitDiscover(
-    ffi.Pointer<ffi.Pointer<ffi.Uint32>> outHandles,
-    ffi.Pointer<ffi.Uint16> outCount,
-  ) {
+  int awaitDiscover(ffi.Pointer<ffi.Pointer<ffi.Uint32>> outHandles, ffi.Pointer<ffi.Uint16> outCount) {
     loadLibrary();
     if (!available) return -1;
     return _tkAwaitDiscover(outHandles.cast(), outCount.cast());
@@ -1026,12 +913,7 @@ class TTCTK {
     }
   }
 
-  int writeFromFileSigned(
-    int handle,
-    int memId,
-    String path,
-    String signaturePath,
-  ) {
+  int writeFromFileSigned(int handle, int memId, String path, String signaturePath) {
     loadLibrary();
     final p = path.toNativeUtf8();
     final q = signaturePath.toNativeUtf8();
@@ -1048,48 +930,22 @@ class TTCTK {
     return _tkEraseRange(handle, startAddr, size, memId);
   }
 
-  int readToMemoryBuffer(
-    int handle,
-    int startAddr,
-    int size,
-    int memId,
-    ffi.Pointer<ffi.Pointer<ffi.Uint8>> outBuffer,
-    ffi.Pointer<ffi.Uint32> outBufferSize,
-  ) {
+  int readToMemoryBuffer(int handle, int startAddr, int size, int memId, ffi.Pointer<ffi.Pointer<ffi.Uint8>> outBuffer, ffi.Pointer<ffi.Uint32> outBufferSize) {
     loadLibrary();
     if (!available) return -1;
-    return _tkReadToMemoryBuffer(
-      handle,
-      startAddr,
-      size,
-      memId,
-      outBuffer.cast(),
-      outBufferSize.cast(),
-    );
+    return _tkReadToMemoryBuffer(handle, startAddr, size, memId, outBuffer.cast(), outBufferSize.cast());
   }
 
   /// Convenience helper that returns the data buffer as a Dart List<int> and
   /// ensures TTCTK memory is freed using TK_FreeResource.
   /// Returns null if unavailable or an error occurred.
-  List<int>? readToMemoryBufferAsList(
-    int handle,
-    int startAddr,
-    int size,
-    int memId,
-  ) {
+  List<int>? readToMemoryBufferAsList(int handle, int startAddr, int size, int memId) {
     loadLibrary();
     if (!available) return null;
     final outBuffer = calloc<ffi.Pointer<ffi.Uint8>>();
     final outBufSize = calloc<ffi.Uint32>();
     try {
-      final status = _tkReadToMemoryBuffer(
-        handle,
-        startAddr,
-        size,
-        memId,
-        outBuffer.cast(),
-        outBufSize.cast(),
-      );
+      final status = _tkReadToMemoryBuffer(handle, startAddr, size, memId, outBuffer.cast(), outBufSize.cast());
       if (status != 0) return null;
       final bufPtr = outBuffer.value;
       if (bufPtr == ffi.nullptr) return null;
@@ -1118,26 +974,13 @@ class TTCTK {
 // ---------------------------------------------------------------------------
 
 // Common
-typedef _c_TK_GetVersion =
-    ffi.Uint32 Function(
-      ffi.Pointer<ffi.Uint16>,
-      ffi.Pointer<ffi.Uint16>,
-      ffi.Pointer<ffi.Uint16>,
-    );
-typedef _TK_GetVersion =
-    int Function(
-      ffi.Pointer<ffi.Uint16>,
-      ffi.Pointer<ffi.Uint16>,
-      ffi.Pointer<ffi.Uint16>,
-    );
-typedef _c_TK_GetVersionString =
-    ffi.Uint32 Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _c_TK_GetVersion = ffi.Uint32 Function(ffi.Pointer<ffi.Uint16>, ffi.Pointer<ffi.Uint16>, ffi.Pointer<ffi.Uint16>);
+typedef _TK_GetVersion = int Function(ffi.Pointer<ffi.Uint16>, ffi.Pointer<ffi.Uint16>, ffi.Pointer<ffi.Uint16>);
+typedef _c_TK_GetVersionString = ffi.Uint32 Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>);
 typedef _TK_GetVersionString = int Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>);
-typedef _c_TK_GetBuildDate =
-    ffi.Uint32 Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _c_TK_GetBuildDate = ffi.Uint32 Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>);
 typedef _TK_GetBuildDate = int Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>);
-typedef _c_TK_GetBuildTime =
-    ffi.Uint32 Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _c_TK_GetBuildTime = ffi.Uint32 Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>);
 typedef _TK_GetBuildTime = int Function(ffi.Pointer<ffi.Pointer<ffi.Int8>>);
 typedef _c_TK_Init = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Int8>);
 typedef _TK_Init = int Function(int, ffi.Pointer<ffi.Int8>);
@@ -1147,162 +990,78 @@ typedef _c_TK_FreeResource = ffi.Uint32 Function(ffi.Pointer<ffi.Void>);
 typedef _TK_FreeResource = int Function(ffi.Pointer<ffi.Void>);
 
 // CAN API
-typedef _c_TK_RegisterCanInterface =
-    ffi.Uint32 Function(
-      ffi.Pointer<ffi.Void>,
-      ffi.Uint32,
-      ffi.Pointer<ffi.Uint32>,
-    );
-typedef _TK_RegisterCanInterface =
-    int Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Uint32>);
+typedef _c_TK_RegisterCanInterface = ffi.Uint32 Function(ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Pointer<ffi.Uint32>);
+typedef _TK_RegisterCanInterface = int Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Uint32>);
 typedef _c_TK_DeRegisterCanInterface = ffi.Uint32 Function(ffi.Uint32);
 typedef _TK_DeRegisterCanInterface = int Function(int);
 typedef _c_TK_NotifyCanFrameReceived = ffi.Uint32 Function(ffi.Uint32);
 typedef _TK_NotifyCanFrameReceived = int Function(int);
-typedef _c_TK_AddCanIdPair =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Void>);
+typedef _c_TK_AddCanIdPair = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Void>);
 typedef _TK_AddCanIdPair = int Function(int, ffi.Pointer<ffi.Void>);
-typedef _c_TK_RemoveCanIdPair =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Void>);
+typedef _c_TK_RemoveCanIdPair = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Void>);
 typedef _TK_RemoveCanIdPair = int Function(int, ffi.Pointer<ffi.Void>);
-typedef _c_TK_TransmitCanFrame =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Void>);
+typedef _c_TK_TransmitCanFrame = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Void>);
 typedef _TK_TransmitCanFrame = int Function(int, ffi.Pointer<ffi.Void>);
 
 // Target API
-typedef _c_TK_AddTarget =
-    ffi.Uint32 Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Uint32>);
-typedef _TK_AddTarget =
-    int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Uint32>);
+typedef _c_TK_AddTarget = ffi.Uint32 Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Uint32>);
+typedef _TK_AddTarget = int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Uint32>);
 typedef _c_TK_RemoveTarget = ffi.Uint32 Function(ffi.Uint32);
 typedef _TK_RemoveTarget = int Function(int);
-typedef _c_TK_SetProgrammingRoutines =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Int8>);
+typedef _c_TK_SetProgrammingRoutines = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Int8>);
 typedef _TK_SetProgrammingRoutines = int Function(int, ffi.Pointer<ffi.Int8>);
-typedef _c_TK_SetTargetProperties =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Void>);
+typedef _c_TK_SetTargetProperties = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Void>);
 typedef _TK_SetTargetProperties = int Function(int, ffi.Pointer<ffi.Void>);
 
 // Program API
 typedef _c_TK_AsyncDiscover = ffi.Uint32 Function(ffi.Uint32);
 typedef _TK_AsyncDiscover = int Function(int);
-typedef _c_TK_AwaitDiscover =
-    ffi.Uint32 Function(
-      ffi.Pointer<ffi.Pointer<ffi.Uint32>>,
-      ffi.Pointer<ffi.Uint16>,
-    );
-typedef _TK_AwaitDiscover =
-    int Function(ffi.Pointer<ffi.Pointer<ffi.Uint32>>, ffi.Pointer<ffi.Uint16>);
+typedef _c_TK_AwaitDiscover = ffi.Uint32 Function(ffi.Pointer<ffi.Pointer<ffi.Uint32>>, ffi.Pointer<ffi.Uint16>);
+typedef _TK_AwaitDiscover = int Function(ffi.Pointer<ffi.Pointer<ffi.Uint32>>, ffi.Pointer<ffi.Uint16>);
 typedef _c_TK_AsyncConnect = ffi.Uint32 Function(ffi.Uint32, ffi.Uint32);
 typedef _TK_AsyncConnect = int Function(int, int);
 typedef _c_TK_AwaitConnect = ffi.Uint32 Function();
 typedef _TK_AwaitConnect = int Function();
-typedef _c_TK_WriteFromFile =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Uint8, ffi.Pointer<ffi.Int8>);
+typedef _c_TK_WriteFromFile = ffi.Uint32 Function(ffi.Uint32, ffi.Uint8, ffi.Pointer<ffi.Int8>);
 typedef _TK_WriteFromFile = int Function(int, int, ffi.Pointer<ffi.Int8>);
-typedef _c_TK_WriteFromFileSigned =
-    ffi.Uint32 Function(
-      ffi.Uint32,
-      ffi.Uint8,
-      ffi.Pointer<ffi.Int8>,
-      ffi.Pointer<ffi.Int8>,
-    );
-typedef _TK_WriteFromFileSigned =
-    int Function(int, int, ffi.Pointer<ffi.Int8>, ffi.Pointer<ffi.Int8>);
-typedef _c_TK_EraseRange =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Uint32, ffi.Uint32, ffi.Uint8);
+typedef _c_TK_WriteFromFileSigned = ffi.Uint32 Function(ffi.Uint32, ffi.Uint8, ffi.Pointer<ffi.Int8>, ffi.Pointer<ffi.Int8>);
+typedef _TK_WriteFromFileSigned = int Function(int, int, ffi.Pointer<ffi.Int8>, ffi.Pointer<ffi.Int8>);
+typedef _c_TK_EraseRange = ffi.Uint32 Function(ffi.Uint32, ffi.Uint32, ffi.Uint32, ffi.Uint8);
 typedef _TK_EraseRange = int Function(int, int, int, int);
 typedef _c_TK_ReadToMemoryBuffer =
-    ffi.Uint32 Function(
-      ffi.Uint32,
-      ffi.Uint32,
-      ffi.Uint32,
-      ffi.Uint8,
-      ffi.Pointer<ffi.Pointer<ffi.Uint8>>,
-      ffi.Pointer<ffi.Uint32>,
-    );
-typedef _TK_ReadToMemoryBuffer =
-    int Function(
-      int,
-      int,
-      int,
-      int,
-      ffi.Pointer<ffi.Pointer<ffi.Uint8>>,
-      ffi.Pointer<ffi.Uint32>,
-    );
-typedef _c_TK_ReadDataByIdToMemoryBuffer =
-    ffi.Uint32 Function(
-      ffi.Uint32,
-      ffi.Uint32,
-      ffi.Pointer<ffi.Pointer<ffi.Uint8>>,
-      ffi.Pointer<ffi.Uint32>,
-    );
-typedef _TK_ReadDataByIdToMemoryBuffer =
-    int Function(
-      int,
-      int,
-      ffi.Pointer<ffi.Pointer<ffi.Uint8>>,
-      ffi.Pointer<ffi.Uint32>,
-    );
-typedef _c_TK_WriteDataByIdFromMemoryBuffer =
-    ffi.Uint32 Function(
-      ffi.Uint32,
-      ffi.Uint32,
-      ffi.Pointer<ffi.Uint8>,
-      ffi.Uint32,
-    );
-typedef _TK_WriteDataByIdFromMemoryBuffer =
-    int Function(int, int, ffi.Pointer<ffi.Uint8>, int);
-typedef _c_TK_GetBootloaderVersion =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkVersionType>);
-typedef _TK_GetBootloaderVersion =
-    int Function(int, ffi.Pointer<TkVersionType>);
-typedef _c_TK_GetBootloaderBuildDate =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TmStruct>);
+    ffi.Uint32 Function(ffi.Uint32, ffi.Uint32, ffi.Uint32, ffi.Uint8, ffi.Pointer<ffi.Pointer<ffi.Uint8>>, ffi.Pointer<ffi.Uint32>);
+typedef _TK_ReadToMemoryBuffer = int Function(int, int, int, int, ffi.Pointer<ffi.Pointer<ffi.Uint8>>, ffi.Pointer<ffi.Uint32>);
+typedef _c_TK_ReadDataByIdToMemoryBuffer = ffi.Uint32 Function(ffi.Uint32, ffi.Uint32, ffi.Pointer<ffi.Pointer<ffi.Uint8>>, ffi.Pointer<ffi.Uint32>);
+typedef _TK_ReadDataByIdToMemoryBuffer = int Function(int, int, ffi.Pointer<ffi.Pointer<ffi.Uint8>>, ffi.Pointer<ffi.Uint32>);
+typedef _c_TK_WriteDataByIdFromMemoryBuffer = ffi.Uint32 Function(ffi.Uint32, ffi.Uint32, ffi.Pointer<ffi.Uint8>, ffi.Uint32);
+typedef _TK_WriteDataByIdFromMemoryBuffer = int Function(int, int, ffi.Pointer<ffi.Uint8>, int);
+typedef _c_TK_GetBootloaderVersion = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkVersionType>);
+typedef _TK_GetBootloaderVersion = int Function(int, ffi.Pointer<TkVersionType>);
+typedef _c_TK_GetBootloaderBuildDate = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TmStruct>);
 typedef _TK_GetBootloaderBuildDate = int Function(int, ffi.Pointer<TmStruct>);
-typedef _c_TK_GetApplicationVersion =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkVersionType>);
-typedef _TK_GetApplicationVersion =
-    int Function(int, ffi.Pointer<TkVersionType>);
-typedef _c_TK_GetApplicationBuildDate =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TmStruct>);
+typedef _c_TK_GetApplicationVersion = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkVersionType>);
+typedef _TK_GetApplicationVersion = int Function(int, ffi.Pointer<TkVersionType>);
+typedef _c_TK_GetApplicationBuildDate = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TmStruct>);
 typedef _TK_GetApplicationBuildDate = int Function(int, ffi.Pointer<TmStruct>);
-typedef _c_TK_GetHsmFirmwareVersion =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkVersionType>);
-typedef _TK_GetHsmFirmwareVersion =
-    int Function(int, ffi.Pointer<TkVersionType>);
-typedef _c_TK_GetHsmFirmwareBuildDate =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TmStruct>);
+typedef _c_TK_GetHsmFirmwareVersion = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkVersionType>);
+typedef _TK_GetHsmFirmwareVersion = int Function(int, ffi.Pointer<TkVersionType>);
+typedef _c_TK_GetHsmFirmwareBuildDate = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TmStruct>);
 typedef _TK_GetHsmFirmwareBuildDate = int Function(int, ffi.Pointer<TmStruct>);
-typedef _c_TK_GetActiveDiagnosticSessionType =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Uint32>);
-typedef _TK_GetActiveDiagnosticSessionType =
-    int Function(int, ffi.Pointer<ffi.Uint32>);
-typedef _c_TK_GetDeviceSerialNumber =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
-typedef _TK_GetDeviceSerialNumber =
-    int Function(int, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
-typedef _c_TK_GetBoardSerialNumber =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
-typedef _TK_GetBoardSerialNumber =
-    int Function(int, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
-typedef _c_TK_GetProductionCode =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
-typedef _TK_GetProductionCode =
-    int Function(int, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
-typedef _c_TK_GetMacAddress =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
-typedef _TK_GetMacAddress =
-    int Function(int, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
-typedef _c_TK_GetHardwareType =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkHwType>);
+typedef _c_TK_GetActiveDiagnosticSessionType = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Uint32>);
+typedef _TK_GetActiveDiagnosticSessionType = int Function(int, ffi.Pointer<ffi.Uint32>);
+typedef _c_TK_GetDeviceSerialNumber = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _TK_GetDeviceSerialNumber = int Function(int, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _c_TK_GetBoardSerialNumber = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _TK_GetBoardSerialNumber = int Function(int, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _c_TK_GetProductionCode = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _TK_GetProductionCode = int Function(int, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _c_TK_GetMacAddress = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _TK_GetMacAddress = int Function(int, ffi.Pointer<ffi.Pointer<ffi.Int8>>);
+typedef _c_TK_GetHardwareType = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkHwType>);
 typedef _TK_GetHardwareType = int Function(int, ffi.Pointer<TkHwType>);
-typedef _c_TK_GetCybersecurityStatus =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkCybersecurityStatusType>);
-typedef _TK_GetCybersecurityStatus =
-    int Function(int, ffi.Pointer<TkCybersecurityStatusType>);
-typedef _c_TK_GetEccCheck =
-    ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkEccCheckType>);
+typedef _c_TK_GetCybersecurityStatus = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkCybersecurityStatusType>);
+typedef _TK_GetCybersecurityStatus = int Function(int, ffi.Pointer<TkCybersecurityStatusType>);
+typedef _c_TK_GetEccCheck = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<TkEccCheckType>);
 typedef _TK_GetEccCheck = int Function(int, ffi.Pointer<TkEccCheckType>);
 typedef _c_TK_ResetTarget = ffi.Uint32 Function(ffi.Uint32);
 typedef _TK_ResetTarget = int Function(int);

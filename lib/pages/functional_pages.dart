@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../ecu_model.dart';
-import '../native/ttctk.dart';
 
 // --- TARGET INFO PAGE ---
 class TargetInfoPage extends StatefulWidget {
@@ -53,21 +52,11 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
 
       // I will return a map with the keys expected by the UI.
       return {
-        'serial': widget.profile!.serialNumber.isNotEmpty
-            ? widget.profile!.serialNumber
-            : "Unknown",
-        'hwType': widget.profile!.hardwareType.isNotEmpty
-            ? widget.profile!.hardwareType
-            : "Unknown",
-        'bootVer': widget.profile!.bootloaderVersion.isNotEmpty
-            ? widget.profile!.bootloaderVersion
-            : "Unknown",
-        'appVer': widget.profile!.appVersion.isNotEmpty
-            ? widget.profile!.appVersion
-            : "Unknown",
-        'appDate': widget.profile!.appBuildDate.isNotEmpty
-            ? widget.profile!.appBuildDate
-            : "Unknown",
+        'serial': widget.profile!.serialNumber.isNotEmpty ? widget.profile!.serialNumber : "Unknown",
+        'hwType': widget.profile!.hardwareType.isNotEmpty ? widget.profile!.hardwareType : "Unknown",
+        'bootVer': widget.profile!.bootloaderVersion.isNotEmpty ? widget.profile!.bootloaderVersion : "Unknown",
+        'appVer': widget.profile!.appVersion.isNotEmpty ? widget.profile!.appVersion : "Unknown",
+        'appDate': widget.profile!.appBuildDate.isNotEmpty ? widget.profile!.appBuildDate : "Unknown",
         'hsmDate': "Unknown", // Not in profile
       };
     } catch (e) {
@@ -77,8 +66,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.profile == null)
-      return const Center(child: Text("No Active Connection"));
+    if (widget.profile == null) return const Center(child: Text("No Active Connection"));
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -87,10 +75,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
         children: [
           Row(
             children: [
-              Text(
-                "Target Information",
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text("Target Information", style: Theme.of(context).textTheme.titleLarge),
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.refresh),
@@ -112,10 +97,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                 }
                 if (snapshot.hasError) {
                   return Center(
-                    child: Text(
-                      "Error: ${snapshot.error}",
-                      style: const TextStyle(color: Colors.red),
-                    ),
+                    child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)),
                   );
                 }
 
@@ -127,36 +109,12 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   children: [
-                    _buildInfoCard(
-                      "Device Serial",
-                      data['serial'] ?? 'N/A',
-                      Icons.qr_code,
-                    ),
-                    _buildInfoCard(
-                      "Hardware Type",
-                      data['hwType'] ?? 'N/A',
-                      Icons.memory,
-                    ),
-                    _buildInfoCard(
-                      "Bootloader Ver",
-                      data['bootVer'] ?? 'N/A',
-                      Icons.system_update,
-                    ),
-                    _buildInfoCard(
-                      "Application Ver",
-                      data['appVer'] ?? 'N/A',
-                      Icons.apps,
-                    ),
-                    _buildInfoCard(
-                      "App Build Date",
-                      data['appDate'] ?? 'N/A',
-                      Icons.calendar_today,
-                    ),
-                    _buildInfoCard(
-                      "HSM Build Date",
-                      data['hsmDate'] ?? 'N/A',
-                      Icons.security,
-                    ),
+                    _buildInfoCard("Device Serial", data['serial'] ?? 'N/A', Icons.qr_code),
+                    _buildInfoCard("Hardware Type", data['hwType'] ?? 'N/A', Icons.memory),
+                    _buildInfoCard("Bootloader Ver", data['bootVer'] ?? 'N/A', Icons.system_update),
+                    _buildInfoCard("Application Ver", data['appVer'] ?? 'N/A', Icons.apps),
+                    _buildInfoCard("App Build Date", data['appDate'] ?? 'N/A', Icons.calendar_today),
+                    _buildInfoCard("HSM Build Date", data['hsmDate'] ?? 'N/A', Icons.security),
                   ],
                 );
               },
@@ -181,17 +139,11 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    label.toUpperCase(),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
+                  Text(label.toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -218,17 +170,12 @@ class DtcPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Trouble Codes (${profile?.name ?? 'Unknown'})",
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text("Trouble Codes (${profile?.name ?? 'Unknown'})", style: Theme.of(context).textTheme.titleLarge),
               ElevatedButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.delete),
                 label: const Text("Clear All (0x14)"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[900],
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red[900]),
               ),
             ],
           ),
@@ -236,24 +183,9 @@ class DtcPage extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
-                _buildDtcItem(
-                  "P0300",
-                  "Random/Multiple Cylinder Misfire",
-                  "Active",
-                  Colors.red,
-                ),
-                _buildDtcItem(
-                  "P0171",
-                  "System Too Lean (Bank 1)",
-                  "Pending",
-                  Colors.orange,
-                ),
-                _buildDtcItem(
-                  "U0100",
-                  "Lost Comm with ECM/PCM A",
-                  "History",
-                  Colors.green,
-                ),
+                _buildDtcItem("P0300", "Random/Multiple Cylinder Misfire", "Active", Colors.red),
+                _buildDtcItem("P0171", "System Too Lean (Bank 1)", "Pending", Colors.orange),
+                _buildDtcItem("U0100", "Lost Comm with ECM/PCM A", "History", Colors.green),
               ],
             ),
           ),
@@ -268,24 +200,14 @@ class DtcPage extends StatelessWidget {
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(4),
-          ),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
           child: Text(
             code,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
-              fontFamily: 'Courier',
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, color: color, fontFamily: 'Courier'),
           ),
         ),
         title: Text(desc),
-        trailing: Text(
-          status.toUpperCase(),
-          style: TextStyle(color: color, fontSize: 12),
-        ),
+        trailing: Text(status.toUpperCase(), style: TextStyle(color: color, fontSize: 12)),
       ),
     );
   }
@@ -311,25 +233,16 @@ class FlashWizardPage extends StatelessWidget {
           children: [
             const Icon(Icons.memory, size: 48, color: Colors.blue),
             const SizedBox(height: 16),
-            const Text(
-              "Firmware Update Wizard",
-              style: TextStyle(fontSize: 22),
-            ),
+            const Text("Firmware Update Wizard", style: TextStyle(fontSize: 22)),
             const SizedBox(height: 8),
-            Text(
-              "Target: ${profile?.name ?? 'None'}",
-              style: const TextStyle(color: Colors.grey),
-            ),
+            Text("Target: ${profile?.name ?? 'None'}", style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 32),
             _buildStepRow(1, "Select Firmware File", true),
             _buildStepRow(2, "Security Access (Seed/Key)", false),
             _buildStepRow(3, "Erase Memory", false),
             _buildStepRow(4, "Transfer Data", false),
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {},
-              child: const Text("LOAD FILE (.HEX)"),
-            ),
+            ElevatedButton(onPressed: () {}, child: const Text("LOAD FILE (.HEX)")),
           ],
         ),
       ),
@@ -344,16 +257,10 @@ class FlashWizardPage extends StatelessWidget {
           CircleAvatar(
             radius: 12,
             backgroundColor: isActive ? Colors.blue : Colors.grey[800],
-            child: Text(
-              "$step",
-              style: const TextStyle(fontSize: 12, color: Colors.white),
-            ),
+            child: Text("$step", style: const TextStyle(fontSize: 12, color: Colors.white)),
           ),
           const SizedBox(width: 16),
-          Text(
-            title,
-            style: TextStyle(color: isActive ? Colors.white : Colors.grey),
-          ),
+          Text(title, style: TextStyle(color: isActive ? Colors.white : Colors.grey)),
         ],
       ),
     );
