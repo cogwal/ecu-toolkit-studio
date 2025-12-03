@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'ecu_model.dart';
+import 'models/ecu_profile.dart';
 import 'pages/connection_page.dart';
 import 'pages/functional_pages.dart';
 import 'pages/settings_page.dart';
@@ -41,8 +41,8 @@ class _MainShellState extends State<MainShell> {
 
   // --- Navigation Logic ---
   void _onDestinationSelected(int index) {
-    // Rule: You cannot go to tabs 1, 2, or 3 unless connected
-    if (_connectedProfile == null && index >= 1 && index <= 3) {
+    // Rule: You cannot go to tabs 1, or 2 unless connected
+    if (_connectedProfile == null && index >= 1 && index <= 2) {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -67,7 +67,6 @@ class _MainShellState extends State<MainShell> {
     final List<Widget> pages = [
       ConnectionPage(onEcuConnected: _handleConnection),
       TargetInfoPage(profile: _connectedProfile),
-      DtcPage(profile: _connectedProfile),
       FlashWizardPage(profile: _connectedProfile),
       // Settings Page (full-screen like other pages)
       SettingsPage(isDark: widget.isDark, onToggleTheme: widget.onToggleTheme),
@@ -120,16 +119,7 @@ class _MainShellState extends State<MainShell> {
                               ),
                             ),
 
-                            // Tab 2: DTCs (Conditional)
-                            NavigationRailDestination(
-                              icon: Icon(Icons.healing, color: isLocked ? disabledColor : null),
-                              label: Text(
-                                'DTCs',
-                                style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12),
-                              ),
-                            ),
-
-                            // Tab 3: Flash (Conditional)
+                            // Tab 2: Flash (Conditional)
                             NavigationRailDestination(
                               icon: Icon(Icons.system_update_alt, color: isLocked ? disabledColor : null),
                               label: Text(
@@ -138,7 +128,7 @@ class _MainShellState extends State<MainShell> {
                               ),
                             ),
 
-                            // Tab 4: Settings
+                            // Tab 3: Settings
                             const NavigationRailDestination(
                               icon: Icon(Icons.settings),
                               label: Text('Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),

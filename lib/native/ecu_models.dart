@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'dart:io' show Platform;
 import 'package:ffi/ffi.dart';
-import '../ecu_model.dart';
+import '../models/ecu_profile.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 
 typedef _get_mock_ecus_native = ffi.Pointer<ffi.Int8> Function();

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../ecu_model.dart';
+import '../models/ecu_profile.dart';
 
 // --- TARGET INFO PAGE ---
 class TargetInfoPage extends StatefulWidget {
@@ -151,63 +151,6 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// --- DTC PAGE ---
-class DtcPage extends StatelessWidget {
-  final EcuProfile? profile;
-  const DtcPage({super.key, this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Trouble Codes (${profile?.name ?? 'Unknown'})", style: Theme.of(context).textTheme.titleLarge),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.delete),
-                label: const Text("Clear All (0x14)"),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red[900]),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ListView(
-              children: [
-                _buildDtcItem("P0300", "Random/Multiple Cylinder Misfire", "Active", Colors.red),
-                _buildDtcItem("P0171", "System Too Lean (Bank 1)", "Pending", Colors.orange),
-                _buildDtcItem("U0100", "Lost Comm with ECM/PCM A", "History", Colors.green),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDtcItem(String code, String desc, String status, Color color) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-          child: Text(
-            code,
-            style: TextStyle(fontWeight: FontWeight.bold, color: color, fontFamily: 'Courier'),
-          ),
-        ),
-        title: Text(desc),
-        trailing: Text(status.toUpperCase(), style: TextStyle(color: color, fontSize: 12)),
       ),
     );
   }

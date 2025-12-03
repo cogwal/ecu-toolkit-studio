@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
-import '../ecu_model.dart';
-import '../native/ecu_models.dart';
+import '../models/ecu_profile.dart';
+import '../models/target_connection.dart';
+
 import '../native/ttctk.dart';
 
 class ConnectionPage extends StatefulWidget {
@@ -18,10 +19,10 @@ class ConnectionPage extends StatefulWidget {
 class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isScanning = false;
-  List<EcuProfile> _discoveredEcus = [];
+  List<TargetConnection> _discoveredTargets = [];
 
-  final TextEditingController _txIdController = TextEditingController(text: "7E0");
-  final TextEditingController _rxIdController = TextEditingController(text: "7E8");
+  final TextEditingController _saController = TextEditingController(text: "F1");
+  final TextEditingController _taController = TextEditingController(text: "08");
 
   // CAN interface handle
   int? _canHandle;
@@ -36,37 +37,93 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   @override
   void dispose() {
     _tabController.dispose();
-    _txIdController.dispose();
-    _rxIdController.dispose();
+    _saController.dispose();
+    _taController.dispose();
     super.dispose();
   }
 
-  void _startNetworkScan() {
+  void _startNetworkScan() async {
+    if (_canHandle == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please register CAN interface first")));
+      return;
+    }
+
     setState(() {
       _isScanning = true;
-      _discoveredEcus.clear();
+      _discoveredTargets.clear();
     });
-    // Delegate mock data retrieval to native models (FFI) when available.
-    Timer(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      try {
-        final nativeList = getMockEcusFromNative();
+
+    // Scan targets 0x01 to 0x08
+    for (int ta = 0x01; ta <= 0x08; ta++) {
+      await _connectTarget(0xF1, ta, isDiscovery: true);
+    }
+
+    setState(() {
+      _isScanning = false;
+    });
+  }
+
+  Future<void> _connectTarget(int sa, int ta, {bool isDiscovery = false}) async {
+    if (_canHandle == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please register CAN interface first")));
+      return;
+    }
+
+    try {
+      final addr = TkTargetAddress();
+      addr.type = TK_TARGET_CATEGORY_UDS_ON_CAN;
+      addr.udsOnCan.mType = TK_TARGET_UDS_MTYPE_DIAGNOSTICS;
+      addr.udsOnCan.sa = sa;
+      addr.udsOnCan.ta = ta;
+      addr.udsOnCan.taType = TK_TARGET_UDS_TATYPE_PHYSICAL;
+      addr.udsOnCan.ae = 0;
+      addr.udsOnCan.isotpFormat = TK_TARGET_ISOTP_FORMAT_NORMAL;
+      addr.udsOnCan.canHandle = _canHandle!;
+      addr.udsOnCan.canFormat = TK_CAN_FRAME_FORMAT_BASE; // Assuming base frame format for now
+
+      final (status, handle) = TTCTK.instance.addTarget(addr);
+
+      if (status == 0) {
+        // Connection successful (or at least target added)
+        // In a real scenario, we might want to "ping" the target or read a DID to confirm it's actually there.
+        // For discovery, we assume if addTarget succeeds, we keep it?
+        // Actually addTarget just adds the configuration. It doesn't verify presence.
+        // But for this task, "A target is added to the ttctk when ... all possible targets are added when doing a discover operation"
+        // So we add them all.
+
+        // Create a basic profile for display
+        // Calculate CAN IDs for display (Physical Addressing)
+        // txId = 0x7E0 + (ta - 1) ? No, see table.
+        // ta=0x01 -> tx=0x7E0. ta=0x08 -> tx=0x7E7.
+        // So txId = 0x7DF + ta? No. 0x7DF + 1 = 0x7E0. Correct.
+        // rxId = 0x7E7 + ta? 0x7E7 + 1 = 0x7E8. Correct.
+
+        final txId = 0x7DF + ta;
+        final rxId = 0x7E7 + ta;
+
+        final connection = TargetConnection(
+          canHandle: _canHandle!,
+          targetHandle: handle,
+          sa: sa,
+          ta: ta,
+          profile: EcuProfile(name: "Target 0x${ta.toRadixString(16).toUpperCase().padLeft(2, '0')}", txId: txId, rxId: rxId),
+        );
+
         setState(() {
-          _isScanning = false;
-          _discoveredEcus = nativeList;
+          _discoveredTargets.add(connection);
         });
-      } catch (e) {
-        // Fallback to existing inline mock if anything goes wrong
-        setState(() {
-          _isScanning = false;
-          _discoveredEcus = [
-            EcuProfile(name: "Engine Control Module", txId: 0x7E0, rxId: 0x7E8),
-            EcuProfile(name: "Transmission Control", txId: 0x7E1, rxId: 0x7E9),
-            EcuProfile(name: "ABS Control Module", txId: 0x7E2, rxId: 0x7EA),
-          ];
-        });
+
+        if (!isDiscovery) {
+          widget.onEcuConnected(connection.profile!);
+        }
+      } else {
+        if (!isDiscovery) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to add target: $status")));
+        }
       }
-    });
+    } catch (e) {
+      debugPrint("Error connecting target: $e");
+    }
   }
 
   void _registerCanInterface() async {
@@ -299,20 +356,26 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
           const SizedBox(height: 16),
           const Divider(),
           Expanded(
-            child: _discoveredEcus.isEmpty && !_isScanning
+            child: _discoveredTargets.isEmpty && !_isScanning
                 ? const Center(
-                    child: Text("No ECUs found. Try again.", style: TextStyle(color: Colors.grey)),
+                    child: Text("No Targets found. Try again.", style: TextStyle(color: Colors.grey)),
                   )
                 : ListView.builder(
-                    itemCount: _discoveredEcus.length,
+                    itemCount: _discoveredTargets.length,
                     itemBuilder: (context, index) {
-                      final ecu = _discoveredEcus[index];
+                      final target = _discoveredTargets[index];
+                      final profile = target.profile;
                       return ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        title: Text(ecu.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text("Tx: 0x${ecu.txId.toRadixString(16)} | Rx: 0x${ecu.rxId.toRadixString(16)}"),
-                        trailing: IconButton(icon: const Icon(Icons.arrow_forward_ios, size: 14), onPressed: () => widget.onEcuConnected(ecu)),
+                        title: Text(profile?.name ?? "Target ${target.ta}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text("SA: 0x${target.sa.toRadixString(16).toUpperCase()} | TA: 0x${target.ta.toRadixString(16).toUpperCase()}"),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.arrow_forward_ios, size: 14),
+                          onPressed: () {
+                            if (profile != null) widget.onEcuConnected(profile);
+                          },
+                        ),
                       );
                     },
                   ),
@@ -329,13 +392,13 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           TextField(
-            controller: _txIdController,
-            decoration: const InputDecoration(labelText: "Request ID (Hex)", prefixText: "0x", border: OutlineInputBorder()),
+            controller: _saController,
+            decoration: const InputDecoration(labelText: "Source Address (SA) (Hex)", prefixText: "0x", border: OutlineInputBorder()),
           ),
           const SizedBox(height: 16),
           TextField(
-            controller: _rxIdController,
-            decoration: const InputDecoration(labelText: "Response ID (Hex)", prefixText: "0x", border: OutlineInputBorder()),
+            controller: _taController,
+            decoration: const InputDecoration(labelText: "Target Address (TA) (Hex)", prefixText: "0x", border: OutlineInputBorder()),
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -343,9 +406,9 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
             height: 45,
             child: ElevatedButton(
               onPressed: () {
-                final tx = int.tryParse(_txIdController.text, radix: 16) ?? 0x7E0;
-                final rx = int.tryParse(_rxIdController.text, radix: 16) ?? 0x7E8;
-                widget.onEcuConnected(EcuProfile(name: "Manual ECU", txId: tx, rxId: rx));
+                final sa = int.tryParse(_saController.text, radix: 16) ?? 0xF1;
+                final ta = int.tryParse(_taController.text, radix: 16) ?? 0x08;
+                _connectTarget(sa, ta);
               },
               child: const Text("Connect"),
             ),

@@ -47,6 +47,23 @@ const int TK_CAN_FRAME_FORMAT_FD_BASE = 1;
 const int TK_CAN_FRAME_FORMAT_EXTENDED = 2;
 const int TK_CAN_FRAME_FORMAT_FD_EXTENDED = 3;
 
+// Target Categories
+const int TK_TARGET_CATEGORY_UDS_ON_CAN = 0;
+
+// UDS Message Types
+const int TK_TARGET_UDS_MTYPE_DIAGNOSTICS = 0;
+const int TK_TARGET_UDS_MTYPE_REMOTE_DIAGNOSTICS = 1;
+
+// UDS Target Address Types
+const int TK_TARGET_UDS_TATYPE_PHYSICAL = 0;
+const int TK_TARGET_UDS_TATYPE_FUNCTIONAL = 1;
+
+// ISO-TP Formats
+const int TK_TARGET_ISOTP_FORMAT_NORMAL = 0;
+const int TK_TARGET_ISOTP_FORMAT_EXTENDED = 1;
+const int TK_TARGET_ISOTP_FORMAT_MIXED = 2;
+const int TK_TARGET_ISOTP_FORMAT_CUSTOM = 3;
+
 // PCAN USB Channels (from PCANBasic.h)
 const int PCAN_USBBUS1 = 0x51;
 const int PCAN_USBBUS2 = 0x52;
