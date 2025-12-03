@@ -126,6 +126,32 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     }
   }
 
+  void _connectMockTarget() {
+    final connection = TargetConnection(
+      canHandle: 0,
+      targetHandle: 0,
+      sa: 0xF1,
+      ta: 0x99,
+      profile: EcuProfile(
+        name: "Mock ECU",
+        txId: 0x7E0,
+        rxId: 0x7E8,
+        serialNumber: "MOCK-SN-12345",
+        hardwareType: "Virtual ECU",
+        appVersion: "1.0.0-mock",
+        bootloaderVersion: "0.5.0-mock",
+        productionCode: "P-MOCK-001",
+        appBuildDate: "2023-10-27",
+      ),
+    );
+
+    setState(() {
+      _discoveredTargets.add(connection);
+    });
+
+    widget.onEcuConnected(connection.profile!);
+  }
+
   void _registerCanInterface() async {
     try {
       final canInterface = calloc<TkCanInterfaceType>();
@@ -412,6 +438,12 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
               },
               child: const Text("Connect"),
             ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 45,
+            child: OutlinedButton.icon(onPressed: _connectMockTarget, icon: const Icon(Icons.bug_report), label: const Text("Connect Mock Target")),
           ),
         ],
       ),

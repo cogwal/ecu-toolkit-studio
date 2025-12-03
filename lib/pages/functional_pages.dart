@@ -69,13 +69,20 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
     if (widget.profile == null) return const Center(child: Text("No Active Connection"));
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text("Target Information", style: Theme.of(context).textTheme.titleLarge),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Target Information", style: Theme.of(context).textTheme.headlineSmall),
+                  const SizedBox(height: 4),
+                  Text("Connected to: ${widget.profile!.name}", style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
+                ],
+              ),
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.refresh),
@@ -87,7 +94,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Expanded(
             child: FutureBuilder<Map<String, dynamic>>(
               future: _targetInfoFuture,
@@ -103,19 +110,49 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
 
                 final data = snapshot.data ?? {};
 
-                return GridView.count(
-                  crossAxisCount: 2,
-                  childAspectRatio: 2.5,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  children: [
-                    _buildInfoCard("Device Serial", data['serial'] ?? 'N/A', Icons.qr_code),
-                    _buildInfoCard("Hardware Type", data['hwType'] ?? 'N/A', Icons.memory),
-                    _buildInfoCard("Bootloader Ver", data['bootVer'] ?? 'N/A', Icons.system_update),
-                    _buildInfoCard("Application Ver", data['appVer'] ?? 'N/A', Icons.apps),
-                    _buildInfoCard("App Build Date", data['appDate'] ?? 'N/A', Icons.calendar_today),
-                    _buildInfoCard("HSM Build Date", data['hsmDate'] ?? 'N/A', Icons.security),
-                  ],
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Responsive grid: fit as many 250px cards as possible
+                    final cardWidth = 280.0;
+                    final crossAxisCount = (constraints.maxWidth / cardWidth).floor().clamp(1, 6);
+
+                    return SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionHeader("Hardware"),
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            children: [
+                              _buildInfoCard("Device Serial", data['serial'] ?? 'N/A', Icons.qr_code, width: cardWidth),
+                              _buildInfoCard("Hardware Type", data['hwType'] ?? 'N/A', Icons.memory, width: cardWidth),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          _buildSectionHeader("Software"),
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            children: [
+                              _buildInfoCard("Bootloader Ver", data['bootVer'] ?? 'N/A', Icons.system_update, width: cardWidth),
+                              _buildInfoCard("Application Ver", data['appVer'] ?? 'N/A', Icons.apps, width: cardWidth),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          _buildSectionHeader("Build Dates"),
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            children: [
+                              _buildInfoCard("App Build Date", data['appDate'] ?? 'N/A', Icons.calendar_today, width: cardWidth),
+                              _buildInfoCard("HSM Build Date", data['hsmDate'] ?? 'N/A', Icons.security, width: cardWidth),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -125,32 +162,48 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
     );
   }
 
-  Widget _buildInfoCard(String label, String value, IconData icon) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Icon(icon, size: 32, color: Colors.blue.withOpacity(0.5)),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(label.toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey, letterSpacing: 1.2),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(String label, String value, IconData icon, {required double width}) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+            child: Icon(icon, size: 20, color: Colors.blue),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
