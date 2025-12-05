@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:ffi' as ffi;
-import 'package:ffi/ffi.dart';
 import '../models/ecu_profile.dart';
 import '../models/target_connection.dart';
-
-import '../native/ttctk.dart';
+import '../services/connection_service.dart';
 
 class ConnectionPage extends StatefulWidget {
   final Function(EcuProfile) onEcuConnected;
@@ -23,6 +20,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   final TextEditingController _saController = TextEditingController(text: "F1");
   final TextEditingController _taController = TextEditingController(text: "08");
+  double _connectionTimeout = 5000;
 
   // CAN interface handle
   int? _canHandle;
@@ -39,6 +37,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     _tabController.dispose();
     _saController.dispose();
     _taController.dispose();
+    // We might want to deregister CAN on dispose if that's desired, but usually connection persists.
     super.dispose();
   }
 
@@ -64,64 +63,27 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   }
 
   Future<void> _connectTarget(int sa, int ta, {bool isDiscovery = false}) async {
-    if (_canHandle == null) {
+    if (!ConnectionService().isCanRegistered) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please register CAN interface first")));
       return;
     }
 
     try {
-      final addr = TkTargetAddress();
-      addr.type = TK_TARGET_CATEGORY_UDS_ON_CAN;
-      addr.udsOnCan.mType = TK_TARGET_UDS_MTYPE_DIAGNOSTICS;
-      addr.udsOnCan.sa = sa;
-      addr.udsOnCan.ta = ta;
-      addr.udsOnCan.taType = TK_TARGET_UDS_TATYPE_PHYSICAL;
-      addr.udsOnCan.ae = 0;
-      addr.udsOnCan.isotpFormat = TK_TARGET_ISOTP_FORMAT_NORMAL;
-      addr.udsOnCan.canHandle = _canHandle!;
-      addr.udsOnCan.canFormat = TK_CAN_FRAME_FORMAT_BASE; // Assuming base frame format for now
+      // For discovery, we might want a shorter timeout or different logic.
+      // But adhering to the new service:
+      final connection = await ConnectionService().connectTarget(sa, ta, durationMs: _connectionTimeout.toInt());
 
-      final (status, handle) = TTCTK.instance.addTarget(addr);
+      setState(() {
+        _discoveredTargets.add(connection);
+      });
 
-      if (status == 0) {
-        // Connection successful (or at least target added)
-        // In a real scenario, we might want to "ping" the target or read a DID to confirm it's actually there.
-        // For discovery, we assume if addTarget succeeds, we keep it?
-        // Actually addTarget just adds the configuration. It doesn't verify presence.
-        // But for this task, "A target is added to the ttctk when ... all possible targets are added when doing a discover operation"
-        // So we add them all.
-
-        // Create a basic profile for display
-        // Calculate CAN IDs for display (Physical Addressing)
-        // txId = 0x7E0 + (ta - 1) ? No, see table.
-        // ta=0x01 -> tx=0x7E0. ta=0x08 -> tx=0x7E7.
-        // So txId = 0x7DF + ta? No. 0x7DF + 1 = 0x7E0. Correct.
-        // rxId = 0x7E7 + ta? 0x7E7 + 1 = 0x7E8. Correct.
-
-        final txId = 0x7DF + ta;
-        final rxId = 0x7E7 + ta;
-
-        final connection = TargetConnection(
-          canHandle: _canHandle!,
-          targetHandle: handle,
-          sa: sa,
-          ta: ta,
-          profile: EcuProfile(name: "Target 0x${ta.toRadixString(16).toUpperCase().padLeft(2, '0')}", txId: txId, rxId: rxId),
-        );
-
-        setState(() {
-          _discoveredTargets.add(connection);
-        });
-
-        if (!isDiscovery) {
-          widget.onEcuConnected(connection.profile!);
-        }
-      } else {
-        if (!isDiscovery) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to add target: $status")));
-        }
+      if (!isDiscovery) {
+        widget.onEcuConnected(connection.profile!);
       }
     } catch (e) {
+      if (!isDiscovery) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Connection failed: $e")));
+      }
       debugPrint("Error connecting target: $e");
     }
   }
@@ -154,36 +116,13 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   void _registerCanInterface() async {
     try {
-      final canInterface = calloc<TkCanInterfaceType>();
-      final handlePtr = calloc<ffi.Uint32>();
-
-      try {
-        // Configure PEAK interface with default values
-        canInterface.ref.type = TK_CAN_INTERFACE_CATEGORY_PEAK;
-        canInterface.ref.peak.channel = PCAN_USBBUS1;
-
-        // Register the interface
-        final status = TTCTK.instance.registerCanInterface(canInterface.cast(), TK_CAN_BITRATE_500K, handlePtr.cast());
-
-        if (status == 0) {
-          setState(() {
-            _canHandle = handlePtr.value;
-            _canStatus = "Registered (Handle: $_canHandle)";
-          });
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CAN interface registered successfully"), backgroundColor: Colors.green));
-          }
-        } else {
-          setState(() {
-            _canStatus = "Registration failed (Status: $status)";
-          });
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to register CAN interface: $status")));
-          }
-        }
-      } finally {
-        calloc.free(canInterface);
-        calloc.free(handlePtr);
+      await ConnectionService().registerCanInterface();
+      setState(() {
+        _canHandle = ConnectionService().canHandle;
+        _canStatus = "Registered (Handle: $_canHandle)";
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CAN interface registered successfully"), backgroundColor: Colors.green));
       }
     } catch (e) {
       setState(() {
@@ -195,27 +134,19 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     }
   }
 
-  void _deregisterCanInterface() {
-    if (_canHandle == null) return;
-
+  void _deregisterCanInterface() async {
     try {
-      final status = TTCTK.instance.deRegisterCanInterface(_canHandle!);
-      if (status == 0) {
-        setState(() {
-          _canHandle = null;
-          _canStatus = "Not registered";
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CAN interface deregistered"), backgroundColor: Colors.green));
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to deregister: $status")));
-        }
+      await ConnectionService().deregisterCanInterface();
+      setState(() {
+        _canHandle = null;
+        _canStatus = "Not registered";
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CAN interface deregistered"), backgroundColor: Colors.green));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Exception: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to deregister: $e")));
       }
     }
   }
@@ -425,6 +356,25 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
           TextField(
             controller: _taController,
             decoration: const InputDecoration(labelText: "Target Address (TA) (Hex)", prefixText: "0x", border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Connection Timeout: ${_connectionTimeout.toInt()} ms"),
+              Slider(
+                value: _connectionTimeout,
+                min: 100,
+                max: 10000,
+                divisions: 99,
+                label: "${_connectionTimeout.toInt()} ms",
+                onChanged: (value) {
+                  setState(() {
+                    _connectionTimeout = value;
+                  });
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           SizedBox(

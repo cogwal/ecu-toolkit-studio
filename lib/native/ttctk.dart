@@ -719,7 +719,7 @@ class TTCTK {
       final status = _tkGetHardwareType(handle, hw.cast());
       if (status != 0) return null;
       // Convert char arrays to Dart String
-      String _arrToString(ffi.Array<ffi.Uint8> arr) {
+      String arrToString(ffi.Array<ffi.Uint8> arr) {
         final list = <int>[];
         for (var i = 0; i < 20; i++) {
           final val = arr[i];
@@ -729,8 +729,8 @@ class TTCTK {
         return utf8.decode(list);
       }
 
-      final name = _arrToString(hw.ref.name);
-      final type = _arrToString(hw.ref.type);
+      final name = arrToString(hw.ref.name);
+      final type = arrToString(hw.ref.type);
       return {'name': name, 'type': type};
     } finally {
       calloc.free(hw);

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../native/ecu_models.dart';
 import '../native/ttctk.dart';
 
 class AboutDialogWidget {
@@ -28,12 +27,9 @@ class AboutDialogWidget {
             ),
             const SizedBox(height: 8),
             const Text('Author: Sander Walstock'),
-
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
       ),
     );
   }
