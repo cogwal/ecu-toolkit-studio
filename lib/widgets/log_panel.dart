@@ -139,36 +139,38 @@ class _LogPanelState extends State<LogPanel> {
                 ? Center(
                     child: Text('No output yet', style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 12)),
                   )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(8),
-                    itemCount: _logs.length,
-                    itemBuilder: (context, index) {
-                      final entry = _logs[index];
-                      final levelColor = _getColorForLevel(entry.level, brightness);
+                : SelectionArea(
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(8),
+                      itemCount: _logs.length,
+                      itemBuilder: (context, index) {
+                        final entry = _logs[index];
+                        final levelColor = _getColorForLevel(entry.level, brightness);
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(_getIconForLevel(entry.level), size: 14, color: levelColor),
-                            const SizedBox(width: 8),
-                            Text(
-                              '[${entry.formattedTime}]',
-                              style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: textColor.withOpacity(0.6)),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                entry.message,
-                                style: TextStyle(fontSize: 12, fontFamily: 'monospace', color: textColor),
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(_getIconForLevel(entry.level), size: 14, color: levelColor),
+                              const SizedBox(width: 8),
+                              Text(
+                                '[${entry.formattedTime}]',
+                                style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: textColor.withOpacity(0.6)),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  entry.message,
+                                  style: TextStyle(fontSize: 12, fontFamily: 'monospace', color: textColor),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
           ),
         ],

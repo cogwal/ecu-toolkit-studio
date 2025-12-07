@@ -31,7 +31,16 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
     }
   }
 
+  @override
+  void dispose() {
+    _service?.dispose();
+    super.dispose();
+  }
+
   void _initService() {
+    // Dispose previous service if exists
+    _service?.dispose();
+
     if (widget.target != null) {
       _service = TargetInfoService(widget.target!);
       _profileStream = _service!.stream;
