@@ -10,8 +10,6 @@ void main() {
     FlutterError.presentError(details);
   };
 
-  debugPrint('Starting EcuToolkitApp');
-
   // Initialize native libraries here
   TTCTK.instance.loadLibrary();
 
@@ -50,12 +48,12 @@ class _ToolkitMissingApp extends StatelessWidget {
                 const SizedBox(height: 12),
                 const Text('TTC Toolkit library not found', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                const Text('The native TTC Toolkit library could not be loaded.\nPlease ensure the toolkit is installed and the runtime library is available for this application.', textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => io.exit(1),
-                  child: const Text('Close'),
+                const Text(
+                  'The native TTC Toolkit library could not be loaded.\nPlease ensure the toolkit is installed and the runtime library is available for this application.',
+                  textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 16),
+                ElevatedButton(onPressed: () => io.exit(1), child: const Text('Close')),
               ],
             ),
           ),
@@ -87,10 +85,7 @@ class _ToolkitInitFailedApp extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text('Toolkit initialization returned status code: $status', textAlign: TextAlign.center),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => io.exit(1),
-                  child: const Text('Close'),
-                ),
+                ElevatedButton(onPressed: () => io.exit(1), child: const Text('Close')),
               ],
             ),
           ),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/ecu_profile.dart';
-import '../models/target_connection.dart';
+import '../models/target.dart';
 import '../services/connection_service.dart';
 import '../services/log_service.dart';
 
 class ConnectionPage extends StatefulWidget {
-  final Function(EcuProfile) onEcuConnected;
+  final Function(Target) onEcuConnected;
 
   const ConnectionPage({super.key, required this.onEcuConnected});
 
@@ -17,7 +17,7 @@ class ConnectionPage extends StatefulWidget {
 class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isScanning = false;
-  List<TargetConnection> _discoveredTargets = [];
+  List<Target> _discoveredTargets = [];
 
   final TextEditingController _saController = TextEditingController(text: "F1");
   final TextEditingController _taController = TextEditingController(text: "08");
@@ -54,9 +54,10 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     });
 
     // Scan targets 0x01 to 0x08
-    for (int ta = 0x01; ta <= 0x08; ta++) {
-      await _connectTarget(0xF1, ta, isDiscovery: true);
-    }
+    // TODO Broken, add targets first then do a discovery using the correct APIs
+    // for (int ta = 0x01; ta <= 0x08; ta++) {
+    //   await _connectTarget(0xF1, ta, isDiscovery: true);
+    // }
 
     setState(() {
       _isScanning = false;
@@ -70,8 +71,6 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     }
 
     try {
-      // For discovery, we might want a shorter timeout or different logic.
-      // But adhering to the new service:
       final connection = await ConnectionService().connectTarget(sa, ta, durationMs: _connectionTimeout.toInt());
 
       setState(() {
@@ -79,22 +78,21 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       });
 
       if (!isDiscovery) {
-        widget.onEcuConnected(connection.profile!);
+        widget.onEcuConnected(connection);
       }
     } catch (e) {
       if (!isDiscovery) {
         LogService().error("Connection failed: $e");
       }
-      debugPrint("Error connecting target: $e");
     }
   }
 
   void _connectMockTarget() {
-    final connection = TargetConnection(
+    final connection = Target(
       canHandle: 0,
       targetHandle: 0,
       sa: 0xF1,
-      ta: 0x99,
+      ta: 0x01,
       profile: EcuProfile(
         name: "Mock ECU",
         txId: 0x7E0,
@@ -112,7 +110,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       _discoveredTargets.add(connection);
     });
 
-    widget.onEcuConnected(connection.profile!);
+    widget.onEcuConnected(connection);
   }
 
   void _registerCanInterface() async {
@@ -178,7 +176,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
                   const SizedBox(width: 16),
                   // Right side: Discovery (full height)
                   Expanded(
-                    child: _panelCard(child: _buildScannerTab(), title: "Network Discovery"),
+                    child: _panelCard(child: _buildDiscoveryTab(), title: "Network Discovery"),
                   ),
                 ],
               ),
@@ -209,7 +207,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
                       ),
                       SizedBox(
                         height: 350,
-                        child: TabBarView(controller: _tabController, children: [_buildScannerTab(), _buildDirectTab()]),
+                        child: TabBarView(controller: _tabController, children: [_buildDiscoveryTab(), _buildDirectTab()]),
                       ),
                     ],
                   ),
@@ -288,7 +286,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     );
   }
 
-  Widget _buildScannerTab() {
+  Widget _buildDiscoveryTab() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -323,7 +321,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
                         trailing: IconButton(
                           icon: const Icon(Icons.arrow_forward_ios, size: 14),
                           onPressed: () {
-                            if (profile != null) widget.onEcuConnected(profile);
+                            widget.onEcuConnected(target);
                           },
                         ),
                       );

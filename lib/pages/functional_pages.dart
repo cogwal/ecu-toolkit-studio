@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../models/ecu_profile.dart';
+import '../models/target.dart';
 
 // --- TARGET INFO PAGE ---
 class TargetInfoPage extends StatefulWidget {
-  final EcuProfile? profile;
-  const TargetInfoPage({super.key, this.profile});
+  final Target? target;
+  const TargetInfoPage({super.key, this.target});
 
   @override
   State<TargetInfoPage> createState() => _TargetInfoPageState();
@@ -21,7 +21,8 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
   }
 
   Future<Map<String, dynamic>> _fetchTargetInfo() async {
-    if (widget.profile == null) {
+    final profile = widget.target?.profile;
+    if (profile == null) {
       throw Exception("No profile connected");
     }
 
@@ -52,11 +53,11 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
 
       // I will return a map with the keys expected by the UI.
       return {
-        'serial': widget.profile!.serialNumber.isNotEmpty ? widget.profile!.serialNumber : "Unknown",
-        'hwType': widget.profile!.hardwareType.isNotEmpty ? widget.profile!.hardwareType : "Unknown",
-        'bootVer': widget.profile!.bootloaderVersion.isNotEmpty ? widget.profile!.bootloaderVersion : "Unknown",
-        'appVer': widget.profile!.appVersion.isNotEmpty ? widget.profile!.appVersion : "Unknown",
-        'appDate': widget.profile!.appBuildDate.isNotEmpty ? widget.profile!.appBuildDate : "Unknown",
+        'serial': profile.serialNumber.isNotEmpty ? profile.serialNumber : "Unknown",
+        'hwType': profile.hardwareType.isNotEmpty ? profile.hardwareType : "Unknown",
+        'bootVer': profile.bootloaderVersion.isNotEmpty ? profile.bootloaderVersion : "Unknown",
+        'appVer': profile.appVersion.isNotEmpty ? profile.appVersion : "Unknown",
+        'appDate': profile.appBuildDate.isNotEmpty ? profile.appBuildDate : "Unknown",
         'hsmDate': "Unknown", // Not in profile
       };
     } catch (e) {
@@ -66,7 +67,8 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.profile == null) return const Center(child: Text("No Active Connection"));
+    final profile = widget.target?.profile;
+    if (profile == null) return const Center(child: Text("No Active Connection"));
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -80,7 +82,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                 children: [
                   Text("Target Information", style: Theme.of(context).textTheme.headlineSmall),
                   const SizedBox(height: 4),
-                  Text("Connected to: ${widget.profile!.name}", style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
+                  Text("Connected to: ${profile.name}", style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
                 ],
               ),
               const Spacer(),
@@ -211,8 +213,8 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
 
 // --- FLASH PAGE ---
 class FlashWizardPage extends StatelessWidget {
-  final EcuProfile? profile;
-  const FlashWizardPage({super.key, this.profile});
+  final Target? target;
+  const FlashWizardPage({super.key, this.target});
 
   @override
   Widget build(BuildContext context) {
@@ -231,7 +233,7 @@ class FlashWizardPage extends StatelessWidget {
             const SizedBox(height: 16),
             const Text("Firmware Update Wizard", style: TextStyle(fontSize: 22)),
             const SizedBox(height: 8),
-            Text("Target: ${profile?.name ?? 'None'}", style: const TextStyle(color: Colors.grey)),
+            Text("Target: ${target?.profile?.name ?? 'None'}", style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 32),
             _buildStepRow(1, "Select Firmware File", true),
             _buildStepRow(2, "Security Access (Seed/Key)", false),

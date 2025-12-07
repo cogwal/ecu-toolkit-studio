@@ -3,7 +3,7 @@ import 'dart:isolate';
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
 import '../native/ttctk.dart';
-import '../models/target_connection.dart';
+import '../models/target.dart';
 import '../models/ecu_profile.dart';
 
 class ConnectionService {
@@ -52,15 +52,7 @@ class ConnectionService {
     }
   }
 
-  /// connects to a target using the UDS on CAN protocol.
-  ///
-  /// The flow is:
-  /// 1. addTarget
-  /// 2. asyncConnect
-  /// 3. awaitConnect
-  ///
-  /// [durationMs] defaults to 5000ms.
-  Future<TargetConnection> connectTarget(int sa, int ta, {int durationMs = 5000}) async {
+  Future<Target> connectTarget(int sa, int ta, {int durationMs = 5000}) async {
     if (_canHandle == null) {
       throw Exception("CAN interface not registered");
     }
@@ -100,7 +92,7 @@ class ConnectionService {
         final txId = 0x7DF + ta; // Simplified calculation as per previous logic
         final rxId = 0x7E7 + ta;
 
-        return TargetConnection(
+        return Target(
           canHandle: _canHandle!,
           targetHandle: handle,
           sa: sa,

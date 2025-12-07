@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'models/ecu_profile.dart';
+import 'models/target.dart';
 import 'pages/connection_page.dart';
 import 'pages/functional_pages.dart';
 import 'pages/settings_page.dart';
@@ -19,7 +19,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
-  EcuProfile? _connectedProfile;
+  Target? _connectedTarget;
   bool _isLogPanelVisible = false;
   LogEntry? _lastLogEntry;
   StreamSubscription<LogEntry>? _logSubscription;
@@ -27,7 +27,6 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    debugPrint('MainShell.initState called');
 
     // Subscribe to log updates
     _logSubscription = LogService().logStream.listen((entry) {
@@ -47,16 +46,16 @@ class _MainShellState extends State<MainShell> {
   }
 
   // --- Connection Logic ---
-  void _handleConnection(EcuProfile profile) {
+  void _handleConnection(Target target) {
     setState(() {
-      _connectedProfile = profile;
+      _connectedTarget = target;
       _selectedIndex = 1; // Auto-jump to Dashboard on connect
     });
   }
 
   void _handleDisconnect() {
     setState(() {
-      _connectedProfile = null;
+      _connectedTarget = null;
       _selectedIndex = 0; // Return to Connect page
     });
   }
@@ -64,7 +63,7 @@ class _MainShellState extends State<MainShell> {
   // --- Navigation Logic ---
   void _onDestinationSelected(int index) {
     // Rule: You cannot go to tabs 1, or 2 unless connected
-    if (_connectedProfile == null && index >= 1 && index <= 2) {
+    if (_connectedTarget == null && index >= 1 && index <= 2) {
       LogService().warning("Please connect to an ECU to access this page.");
       return;
     }
@@ -79,14 +78,14 @@ class _MainShellState extends State<MainShell> {
     // Define pages
     final List<Widget> pages = [
       ConnectionPage(onEcuConnected: _handleConnection),
-      TargetInfoPage(profile: _connectedProfile),
-      FlashWizardPage(profile: _connectedProfile),
+      TargetInfoPage(target: _connectedTarget),
+      FlashWizardPage(target: _connectedTarget),
       // Settings Page (full-screen like other pages)
       SettingsPage(isDark: widget.isDark, onToggleTheme: widget.onToggleTheme),
     ];
 
     // Define visual state for tabs
-    final bool isLocked = _connectedProfile == null;
+    final bool isLocked = _connectedTarget == null;
     final brightness = Theme.of(context).brightness;
     final Color disabledColor = Theme.of(context).disabledColor.withOpacity(brightness == Brightness.dark ? 0.3 : 0.6);
     final Color sidebarBg = Theme.of(context).cardColor;
@@ -181,7 +180,8 @@ class _MainShellState extends State<MainShell> {
   }
 
   Widget _buildStatusBar() {
-    bool isConnected = _connectedProfile != null;
+    final profile = _connectedTarget?.profile;
+    bool isConnected = _connectedTarget != null;
     return Container(
       height: 28,
       color: isConnected ? const Color(0xFF007ACC) : const Color(0xFF333333), // Blue if connected, Grey if not
@@ -191,7 +191,7 @@ class _MainShellState extends State<MainShell> {
           Icon(isConnected ? Icons.link : Icons.link_off, size: 14, color: Colors.white),
           const SizedBox(width: 8),
           Text(
-            isConnected ? "CONNECTED: ${_connectedProfile!.name} (0x${_connectedProfile!.txId.toRadixString(16).toUpperCase()})" : "NO CONNECTION",
+            isConnected ? "CONNECTED: ${profile?.name ?? 'Unknown'} (0x${profile?.txId.toRadixString(16).toUpperCase() ?? '???'})" : "NO CONNECTION",
             style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
           ),
           const SizedBox(width: 16),
