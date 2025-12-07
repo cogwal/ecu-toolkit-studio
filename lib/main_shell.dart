@@ -2,7 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'models/target.dart';
 import 'pages/connection_page.dart';
-import 'pages/functional_pages.dart';
+import 'pages/target_info_page.dart';
+import 'pages/flash_page.dart';
 import 'pages/settings_page.dart';
 import 'services/log_service.dart';
 import 'widgets/log_panel.dart';
@@ -152,7 +153,7 @@ class _MainShellState extends State<MainShell> {
 
                             // Tab 2: Flash (Conditional)
                             NavigationRailDestination(
-                              icon: Icon(Icons.system_update_alt, color: isLocked ? disabledColor : null),
+                              icon: Icon(Icons.memory, color: isLocked ? disabledColor : null),
                               label: Text(
                                 'Flash',
                                 style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12),
