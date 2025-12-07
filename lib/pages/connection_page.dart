@@ -3,6 +3,7 @@ import 'dart:async';
 import '../models/ecu_profile.dart';
 import '../models/target_connection.dart';
 import '../services/connection_service.dart';
+import '../services/log_service.dart';
 
 class ConnectionPage extends StatefulWidget {
   final Function(EcuProfile) onEcuConnected;
@@ -43,7 +44,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   void _startNetworkScan() async {
     if (_canHandle == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please register CAN interface first")));
+      LogService().warning("Please register CAN interface first");
       return;
     }
 
@@ -64,7 +65,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   Future<void> _connectTarget(int sa, int ta, {bool isDiscovery = false}) async {
     if (!ConnectionService().isCanRegistered) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please register CAN interface first")));
+      LogService().warning("Please register CAN interface first");
       return;
     }
 
@@ -82,7 +83,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       }
     } catch (e) {
       if (!isDiscovery) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Connection failed: $e")));
+        LogService().error("Connection failed: $e");
       }
       debugPrint("Error connecting target: $e");
     }
@@ -121,16 +122,12 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
         _canHandle = ConnectionService().canHandle;
         _canStatus = "Registered (Handle: $_canHandle)";
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CAN interface registered successfully"), backgroundColor: Colors.green));
-      }
+      LogService().info("CAN interface registered successfully");
     } catch (e) {
       setState(() {
         _canStatus = "Error: $e";
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Exception: $e")));
-      }
+      LogService().error("Failed to register CAN interface: $e");
     }
   }
 
@@ -141,13 +138,9 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
         _canHandle = null;
         _canStatus = "Not registered";
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CAN interface deregistered"), backgroundColor: Colors.green));
-      }
+      LogService().info("CAN interface deregistered");
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to deregister: $e")));
-      }
+      LogService().error("Failed to deregister CAN interface: $e");
     }
   }
 
@@ -343,43 +336,13 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   }
 
   Widget _buildDirectTab() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(12.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          TextField(
-            controller: _saController,
-            decoration: const InputDecoration(labelText: "Source Address (SA) (Hex)", prefixText: "0x", border: OutlineInputBorder()),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _taController,
-            decoration: const InputDecoration(labelText: "Target Address (TA) (Hex)", prefixText: "0x", border: OutlineInputBorder()),
-          ),
-          const SizedBox(height: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Connection Timeout: ${_connectionTimeout.toInt()} ms"),
-              Slider(
-                value: _connectionTimeout,
-                min: 100,
-                max: 10000,
-                divisions: 99,
-                label: "${_connectionTimeout.toInt()} ms",
-                onChanged: (value) {
-                  setState(() {
-                    _connectionTimeout = value;
-                  });
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            height: 45,
             child: ElevatedButton(
               onPressed: () {
                 final sa = int.tryParse(_saController.text, radix: 16) ?? 0xF1;
@@ -389,11 +352,56 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
               child: const Text("Connect"),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            height: 45,
-            child: OutlinedButton.icon(onPressed: _connectMockTarget, icon: const Icon(Icons.bug_report), label: const Text("Connect Mock Target")),
+            child: OutlinedButton.icon(onPressed: _connectMockTarget, icon: const Icon(Icons.bug_report, size: 18), label: const Text("Connect Mock Target")),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _saController,
+            decoration: const InputDecoration(
+              labelText: "Source Address (SA) (Hex)",
+              prefixText: "0x",
+              border: OutlineInputBorder(),
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+            style: const TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _taController,
+            decoration: const InputDecoration(
+              labelText: "Target Address (TA) (Hex)",
+              prefixText: "0x",
+              border: OutlineInputBorder(),
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+            style: const TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Connection Timeout: " + ((_connectionTimeout.toInt() == 0) ? "Indefinite" : "${_connectionTimeout.toInt()} ms"),
+                style: const TextStyle(fontSize: 13),
+              ),
+              Slider(
+                value: _connectionTimeout,
+                min: 0,
+                max: 10000,
+                divisions: 100,
+                label: (_connectionTimeout.toInt() == 0) ? "Indefinite" : "${_connectionTimeout.toInt()} ms",
+                onChanged: (value) {
+                  setState(() {
+                    _connectionTimeout = value;
+                  });
+                },
+              ),
+            ],
           ),
         ],
       ),

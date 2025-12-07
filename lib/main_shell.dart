@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'models/ecu_profile.dart';
 import 'pages/connection_page.dart';
 import 'pages/functional_pages.dart';
 import 'pages/settings_page.dart';
+import 'services/log_service.dart';
+import 'widgets/log_panel.dart';
 
 class MainShell extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -17,11 +20,30 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   EcuProfile? _connectedProfile;
+  bool _isLogPanelVisible = false;
+  LogEntry? _lastLogEntry;
+  StreamSubscription<LogEntry>? _logSubscription;
 
   @override
   void initState() {
     super.initState();
     debugPrint('MainShell.initState called');
+
+    // Subscribe to log updates
+    _logSubscription = LogService().logStream.listen((entry) {
+      setState(() {
+        _lastLogEntry = entry;
+      });
+    });
+
+    // Add initial log message
+    LogService().info('Application started');
+  }
+
+  @override
+  void dispose() {
+    _logSubscription?.cancel();
+    super.dispose();
   }
 
   // --- Connection Logic ---
@@ -43,16 +65,7 @@ class _MainShellState extends State<MainShell> {
   void _onDestinationSelected(int index) {
     // Rule: You cannot go to tabs 1, or 2 unless connected
     if (_connectedProfile == null && index >= 1 && index <= 2) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please connect to an ECU to access this tool.", style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.redAccent,
-          duration: Duration(milliseconds: 1500),
-          behavior: SnackBarBehavior.floating,
-          width: 300,
-        ),
-      );
+      LogService().warning("Please connect to an ECU to access this page.");
       return;
     }
 
@@ -116,6 +129,7 @@ class _MainShellState extends State<MainShell> {
                               label: Text(
                                 'Target Info',
                                 style: TextStyle(color: isLocked ? disabledColor : null, fontWeight: FontWeight.bold, fontSize: 12),
+                                textAlign: TextAlign.center,
                               ),
                             ),
 
@@ -142,12 +156,16 @@ class _MainShellState extends State<MainShell> {
 
                 const VerticalDivider(width: 1, thickness: 1),
 
-                // --- MAIN CONTENT ---
+                // --- MAIN CONTENT + LOG PANEL ---
                 Expanded(
-                  child: Stack(
+                  child: Column(
                     children: [
-                      // Main content
-                      Positioned.fill(child: pages[_selectedIndex]),
+                      // Main page content
+                      Expanded(
+                        child: Stack(children: [Positioned.fill(child: pages[_selectedIndex])]),
+                      ),
+                      // Log panel (hidden on Settings page, index 3)
+                      if (_isLogPanelVisible && _selectedIndex != 3) LogPanel(onClose: () => setState(() => _isLogPanelVisible = false)),
                     ],
                   ),
                 ),
@@ -176,7 +194,36 @@ class _MainShellState extends State<MainShell> {
             isConnected ? "CONNECTED: ${_connectedProfile!.name} (0x${_connectedProfile!.txId.toRadixString(16).toUpperCase()})" : "NO CONNECTION",
             style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
           ),
-          const Spacer(),
+          const SizedBox(width: 16),
+          // Last log message
+          if (_lastLogEntry != null)
+            Expanded(
+              child: Row(
+                children: [
+                  Icon(_getLogIcon(_lastLogEntry!.level), size: 12, color: _getLogColor(_lastLogEntry!.level)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      _lastLogEntry!.message,
+                      style: TextStyle(color: _getLogColor(_lastLogEntry!.level), fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            const Spacer(),
+          // Log panel toggle button (hidden on Settings page)
+          if (_selectedIndex != 3)
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(_isLogPanelVisible ? Icons.expand_more : Icons.terminal, size: 16, color: Colors.white),
+              tooltip: _isLogPanelVisible ? 'Hide Output' : 'Show Output',
+              onPressed: () => setState(() => _isLogPanelVisible = !_isLogPanelVisible),
+            ),
+          if (_selectedIndex != 3) const SizedBox(width: 12),
           if (isConnected)
             IconButton(
               padding: EdgeInsets.zero,
@@ -188,5 +235,31 @@ class _MainShellState extends State<MainShell> {
         ],
       ),
     );
+  }
+
+  IconData _getLogIcon(LogLevel level) {
+    switch (level) {
+      case LogLevel.error:
+        return Icons.error_outline;
+      case LogLevel.warning:
+        return Icons.warning_amber;
+      case LogLevel.info:
+        return Icons.info_outline;
+      case LogLevel.debug:
+        return Icons.bug_report;
+    }
+  }
+
+  Color _getLogColor(LogLevel level) {
+    switch (level) {
+      case LogLevel.error:
+        return Colors.red.shade300;
+      case LogLevel.warning:
+        return Colors.orange.shade300;
+      case LogLevel.info:
+        return Colors.white;
+      case LogLevel.debug:
+        return Colors.grey.shade400;
+    }
   }
 }
