@@ -77,29 +77,20 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     LogService().info("Attempting connection to target SA=$saHex, TA=$taHex (timeout: ${_connectionTimeout.toInt()}ms)");
 
     try {
-      final connection = await ConnectionService().connectTarget(sa, ta, durationMs: _connectionTimeout.toInt());
+      final target = await ConnectionService().connectTarget(sa, ta, durationMs: _connectionTimeout.toInt());
 
-      LogService().info("Successfully connected to target SA=$saHex, TA=$taHex (handle: ${connection.targetHandle})");
-      setState(() {
-        _discoveredTargets.add(connection);
-      });
+      LogService().info("Successfully connected to target SA=$saHex, TA=$taHex (handle: ${target.targetHandle})");
 
-      if (!isDiscovery) {
-        LogService().debug("Invoking onEcuConnected callback for target TA=$taHex");
-        widget.onEcuConnected(connection);
-      }
+      LogService().debug("Invoking onEcuConnected callback for target TA=$taHex");
+      widget.onEcuConnected(target);
     } catch (e) {
-      if (!isDiscovery) {
-        LogService().error("Connection to target SA=$saHex, TA=$taHex failed: $e");
-      } else {
-        LogService().debug("Discovery: No response from target TA=$taHex");
-      }
+      LogService().error("Connection to target SA=$saHex, TA=$taHex failed: $e");
     }
   }
 
   void _connectMockTarget() {
     LogService().info("Creating mock target connection...");
-    final connection = Target(
+    final target = Target(
       canHandle: 0,
       targetHandle: 0,
       sa: 0xF1,
@@ -117,13 +108,10 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       ),
     );
 
-    LogService().info("Mock target created: ${connection.profile?.name} (SA=0xF1, TA=0x01)");
-    setState(() {
-      _discoveredTargets.add(connection);
-    });
+    LogService().info("Mock target created: ${target.profile?.name} (SA=0xF1, TA=0x01)");
 
     LogService().debug("Invoking onEcuConnected callback for mock target");
-    widget.onEcuConnected(connection);
+    widget.onEcuConnected(target);
   }
 
   void _registerCanInterface() async {

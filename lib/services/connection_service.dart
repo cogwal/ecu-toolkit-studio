@@ -103,24 +103,8 @@ class ConnectionService {
         throw Exception("Connection failed. Status: $connectStatus");
       }
     } catch (e) {
-      // If connection fails, we might want to remove the target?
-      // The requirement didn't specify cleanup on failure, but it's good practice.
-      // For now, adhere strictly to the requested flow.
+      TTCTK.instance.removeTarget(handle);
       rethrow;
     }
   }
-
-  /// Helper for discovery (simplified connection flow without full async/await connect for every target if unnecessary,
-  /// but based on previous code, discovery used _connectTarget.
-  /// If discovery also needs to verify connection, we should use the new flow.)
-  ///
-  /// However, standard UDS discovery usually just means "check if anyone answers to tester present".
-  /// The previous code just did `addTarget`.
-  /// The user request "The @[lib/pages/connection_page.dart] currently adds the target and does not actually connect... advise me"
-  /// implies the "Connect" button action (Direct Connect).
-  ///
-  /// For Discovery, calling asyncConnect/awaitConnect on EVERY address 0x01-0x08 might be slow (8 * 5s = 40s worst case).
-  /// But `asyncDiscover` exists in the API: `_tkAsyncDiscover`.
-  ///
-  /// For this task, I will focus on the `connectTarget` method being used for the Direct Connect feature.
 }

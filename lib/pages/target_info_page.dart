@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/target.dart';
+import '../models/ecu_profile.dart';
+import '../services/target_info_service.dart';
 
 // --- TARGET INFO PAGE ---
 class TargetInfoPage extends StatefulWidget {
@@ -12,109 +14,78 @@ class TargetInfoPage extends StatefulWidget {
 }
 
 class _TargetInfoPageState extends State<TargetInfoPage> {
-  late Future<Map<String, dynamic>> _targetInfoFuture;
+  TargetInfoService? _service;
+  Stream<EcuProfile>? _profileStream;
 
   @override
   void initState() {
     super.initState();
-    _targetInfoFuture = _fetchTargetInfo();
+    _initService();
   }
 
-  Future<Map<String, dynamic>> _fetchTargetInfo() async {
-    final profile = widget.target?.profile;
-    if (profile == null) {
-      throw Exception("No profile connected");
+  @override
+  void didUpdateWidget(TargetInfoPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.target != oldWidget.target) {
+      _initService();
     }
+  }
 
-    // TODO: Implement proper handle management.
-    // For now, we attempt to open channel 0 (CAN0) with default settings
-    // or use a temporary handle if the API allows stateless queries (unlikely).
-    // The TTCTK API requires a handle from TK_Open.
-    // We will try to open, fetch, and close for this operation to ensure we get fresh data.
-    // In a real app, the handle should be persistent in the MainShell or EcuProfile.
-
-    // Assuming 500k baud (500000), Protocol UDS (1), Flags 0
-    // We need to know the channel. Defaulting to 1 (CAN1) or 0?
-    // Let's try to find a valid channel or just use a mock response if we can't open.
-
-    // Since I cannot be sure about the hardware, I will wrap this in a try-catch
-    // and return the profile data if native fails, or real data if it succeeds.
-
-    try {
-      // int handle = TTCTK.open(1, 500000, 1, 0); // Example
-      // if (handle == 0) throw Exception("Failed to open channel");
-
-      // For this implementation step, I will use the data ALREADY in the profile if available,
-      // OR return a placeholder if I can't call native yet.
-      // BUT the user explicitly asked to use the TTCTK API.
-
-      // Let's assume we can call the static methods in TTCTK.
-      // I'll add a helper in TTCTK to "getOrOpenHandle" if possible, but I can't modify C code.
-
-      // I will return a map with the keys expected by the UI.
-      return {
-        'serial': profile.serialNumber.isNotEmpty ? profile.serialNumber : "Unknown",
-        'hwType': profile.hardwareType.isNotEmpty ? profile.hardwareType : "Unknown",
-        'bootVer': profile.bootloaderVersion.isNotEmpty ? profile.bootloaderVersion : "Unknown",
-        'appVer': profile.appVersion.isNotEmpty ? profile.appVersion : "Unknown",
-        'appDate': profile.appBuildDate.isNotEmpty ? profile.appBuildDate : "Unknown",
-        'hsmDate': "Unknown", // Not in profile
-      };
-    } catch (e) {
-      return {'error': e.toString()};
+  void _initService() {
+    if (widget.target != null) {
+      _service = TargetInfoService(widget.target!);
+      _profileStream = _service!.stream;
+      // Start reading immediately
+      _service!.startReading();
+    } else {
+      _service = null;
+      _profileStream = null;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final profile = widget.target?.profile;
-    if (profile == null) return const Center(child: Text("No Active Connection"));
+    if (widget.target == null) {
+      return const Center(child: Text("No Active Connection"));
+    }
 
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return StreamBuilder<EcuProfile>(
+      stream: _profileStream,
+      initialData: widget.target!.profile,
+      builder: (context, snapshot) {
+        final profile = snapshot.data;
+        if (profile == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  Text("Target Information", style: Theme.of(context).textTheme.headlineSmall),
-                  const SizedBox(height: 4),
-                  Text("Connected to: ${profile.name}", style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Target Information", style: Theme.of(context).textTheme.headlineSmall),
+                      const SizedBox(height: 4),
+                      Text("Connected to: ${profile.name}", style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
+                    ],
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () {
+                      _service?.startReading();
+                    },
+                  ),
                 ],
               ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: () {
-                  setState(() {
-                    _targetInfoFuture = _fetchTargetInfo();
-                  });
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: FutureBuilder<Map<String, dynamic>>(
-              future: _targetInfoFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)),
-                  );
-                }
-
-                final data = snapshot.data ?? {};
-
-                return LayoutBuilder(
+              const SizedBox(height: 24),
+              Expanded(
+                child: LayoutBuilder(
                   builder: (context, constraints) {
-                    // Responsive grid: fit as many 250px cards as possible
                     final cardWidth = 280.0;
 
                     return SingleChildScrollView(
@@ -126,8 +97,9 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                             spacing: 16,
                             runSpacing: 16,
                             children: [
-                              _buildInfoCard("Device Serial", data['serial'] ?? 'N/A', Icons.qr_code, width: cardWidth),
-                              _buildInfoCard("Hardware Type", data['hwType'] ?? 'N/A', Icons.memory, width: cardWidth),
+                              _buildInfoCard("Device Serial", profile.serialNumber, Icons.qr_code, width: cardWidth),
+                              _buildInfoCard("Hardware Type", profile.hardwareType, Icons.memory, width: cardWidth),
+                              _buildInfoCard("Production Code", profile.productionCode, Icons.factory, width: cardWidth),
                             ],
                           ),
                           const SizedBox(height: 24),
@@ -136,8 +108,9 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                             spacing: 16,
                             runSpacing: 16,
                             children: [
-                              _buildInfoCard("Bootloader Ver", data['bootVer'] ?? 'N/A', Icons.system_update, width: cardWidth),
-                              _buildInfoCard("Application Ver", data['appVer'] ?? 'N/A', Icons.apps, width: cardWidth),
+                              _buildInfoCard("Bootloader Ver", profile.bootloaderVersion, Icons.system_update, width: cardWidth),
+                              _buildInfoCard("Application Ver", profile.appVersion, Icons.apps, width: cardWidth),
+                              _buildInfoCard("HSM Ver", profile.hsmVersion, Icons.security, width: cardWidth),
                             ],
                           ),
                           const SizedBox(height: 24),
@@ -146,20 +119,21 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                             spacing: 16,
                             runSpacing: 16,
                             children: [
-                              _buildInfoCard("App Build Date", data['appDate'] ?? 'N/A', Icons.calendar_today, width: cardWidth),
-                              _buildInfoCard("HSM Build Date", data['hsmDate'] ?? 'N/A', Icons.security, width: cardWidth),
+                              _buildInfoCard("Bootloader Date", profile.bootloaderBuildDate, Icons.calendar_today, width: cardWidth),
+                              _buildInfoCard("App Build Date", profile.appBuildDate, Icons.calendar_today, width: cardWidth),
+                              _buildInfoCard("HSM Build Date", profile.hsmBuildDate, Icons.calendar_today, width: cardWidth),
                             ],
                           ),
                         ],
                       ),
                     );
                   },
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -174,6 +148,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
   }
 
   Widget _buildInfoCard(String label, String value, IconData icon, {required double width}) {
+    final displayValue = value.isEmpty ? "Unknown" : value;
     return Container(
       width: width,
       padding: const EdgeInsets.all(12.0),
@@ -197,7 +172,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                 Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 const SizedBox(height: 2),
                 Text(
-                  value,
+                  displayValue,
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
