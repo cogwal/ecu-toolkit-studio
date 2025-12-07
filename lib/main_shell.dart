@@ -18,30 +18,48 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  final LogService _logService = LogService();
   int _selectedIndex = 0;
   Target? _connectedTarget;
   bool _isLogPanelVisible = false;
   LogEntry? _lastLogEntry;
   StreamSubscription<LogEntry>? _logSubscription;
+  StreamSubscription<LogLevel>? _logLevelSubscription;
 
   @override
   void initState() {
     super.initState();
 
-    // Subscribe to log updates
-    _logSubscription = LogService().logStream.listen((entry) {
+    // Subscribe to log updates - only update status bar if entry passes filter
+    _logSubscription = _logService.logStream.listen((entry) {
       setState(() {
-        _lastLogEntry = entry;
+        if (entry.level.index >= _logService.minLogLevel.index) {
+          _lastLogEntry = entry;
+        }
+      });
+    });
+
+    // Subscribe to log level changes - update status bar with last matching entry
+    _logLevelSubscription = _logService.minLogLevelStream.listen((_) {
+      setState(() {
+        _lastLogEntry = _findLastFilteredLogEntry();
       });
     });
 
     // Add initial log message
-    LogService().info('Application started');
+    _logService.info('Application started');
+  }
+
+  /// Find the most recent log entry that passes the current log level filter
+  LogEntry? _findLastFilteredLogEntry() {
+    final filtered = _logService.filteredLogs;
+    return filtered.isNotEmpty ? filtered.last : null;
   }
 
   @override
   void dispose() {
     _logSubscription?.cancel();
+    _logLevelSubscription?.cancel();
     super.dispose();
   }
 

@@ -17,21 +17,30 @@ class _LogPanelState extends State<LogPanel> {
   final LogService _logService = LogService();
   final ScrollController _scrollController = ScrollController();
   StreamSubscription<LogEntry>? _subscription;
+  StreamSubscription<LogLevel>? _levelSubscription;
   List<LogEntry> _logs = [];
 
   @override
   void initState() {
     super.initState();
-    _logs = List.from(_logService.logs);
+    _logs = _logService.filteredLogs;
     _subscription = _logService.logStream.listen((entry) {
       setState(() {
-        _logs = List.from(_logService.logs);
+        _logs = _logService.filteredLogs;
       });
-      // Auto-scroll to bottom on new entry
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(_scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 100), curve: Curves.easeOut);
-        }
+      // Auto-scroll to bottom on new entry (only if new entry passes filter)
+      if (entry.level.index >= _logService.minLogLevel.index) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(_scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 100), curve: Curves.easeOut);
+          }
+        });
+      }
+    });
+    // Listen to log level changes to refresh the filtered list
+    _levelSubscription = _logService.minLogLevelStream.listen((_) {
+      setState(() {
+        _logs = _logService.filteredLogs;
       });
     });
   }
@@ -39,6 +48,7 @@ class _LogPanelState extends State<LogPanel> {
   @override
   void dispose() {
     _subscription?.cancel();
+    _levelSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();
   }

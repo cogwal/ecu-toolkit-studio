@@ -48,6 +48,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       return;
     }
 
+    LogService().info("Starting network scan for ECU targets...");
     setState(() {
       _isScanning = true;
       _discoveredTargets.clear();
@@ -59,6 +60,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     //   await _connectTarget(0xF1, ta, isDiscovery: true);
     // }
 
+    LogService().info("Network scan completed. Found ${_discoveredTargets.length} target(s)");
     setState(() {
       _isScanning = false;
     });
@@ -70,24 +72,33 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       return;
     }
 
+    final saHex = "0x${sa.toRadixString(16).toUpperCase()}";
+    final taHex = "0x${ta.toRadixString(16).toUpperCase()}";
+    LogService().info("Attempting connection to target SA=$saHex, TA=$taHex (timeout: ${_connectionTimeout.toInt()}ms)");
+
     try {
       final connection = await ConnectionService().connectTarget(sa, ta, durationMs: _connectionTimeout.toInt());
 
+      LogService().info("Successfully connected to target SA=$saHex, TA=$taHex (handle: ${connection.targetHandle})");
       setState(() {
         _discoveredTargets.add(connection);
       });
 
       if (!isDiscovery) {
+        LogService().debug("Invoking onEcuConnected callback for target TA=$taHex");
         widget.onEcuConnected(connection);
       }
     } catch (e) {
       if (!isDiscovery) {
-        LogService().error("Connection failed: $e");
+        LogService().error("Connection to target SA=$saHex, TA=$taHex failed: $e");
+      } else {
+        LogService().debug("Discovery: No response from target TA=$taHex");
       }
     }
   }
 
   void _connectMockTarget() {
+    LogService().info("Creating mock target connection...");
     final connection = Target(
       canHandle: 0,
       targetHandle: 0,
@@ -106,10 +117,12 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       ),
     );
 
+    LogService().info("Mock target created: ${connection.profile?.name} (SA=0xF1, TA=0x01)");
     setState(() {
       _discoveredTargets.add(connection);
     });
 
+    LogService().debug("Invoking onEcuConnected callback for mock target");
     widget.onEcuConnected(connection);
   }
 
