@@ -127,7 +127,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       setState(() {
         _canStatus = "Error: $e";
       });
-      LogService().error("Failed to register CAN interface: $e");
+      LogService().error("$e");
     }
   }
 
@@ -140,7 +140,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       });
       LogService().info("CAN interface deregistered");
     } catch (e) {
-      LogService().error("Failed to deregister CAN interface: $e");
+      LogService().error("$e");
     }
   }
 

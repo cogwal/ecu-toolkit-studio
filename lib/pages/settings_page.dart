@@ -29,19 +29,16 @@ class SettingsPage extends StatelessWidget {
                     color: isDark ? Theme.of(context).primaryColor : Theme.of(context).iconTheme.color,
                     tooltip: 'Switch to dark theme',
                     onPressed: () {
-                      if (isDark) onToggleTheme();
+                      if (!isDark) onToggleTheme();
                     },
                   ),
-                  Switch(
-                    value: !isDark,
-                    onChanged: (v) => onToggleTheme(),
-                  ),
+                  Switch(value: !isDark, onChanged: (v) => onToggleTheme()),
                   IconButton(
                     icon: Icon(Icons.light_mode),
                     color: !isDark ? Theme.of(context).primaryColor : Theme.of(context).iconTheme.color,
                     tooltip: 'Switch to light theme',
                     onPressed: () {
-                      if (!isDark) onToggleTheme();
+                      if (isDark) onToggleTheme();
                     },
                   ),
                 ],
@@ -50,11 +47,7 @@ class SettingsPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('About'),
-              onTap: () => AboutDialogWidget.show(context),
-            ),
+            child: ListTile(leading: const Icon(Icons.info_outline), title: const Text('About'), onTap: () => AboutDialogWidget.show(context)),
           ),
         ],
       ),
