@@ -146,23 +146,62 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final isWide = width >= 900; // treat wide screens (desktop) differently
+    final isWide = width >= 900;
 
     return Padding(
       padding: const EdgeInsets.all(32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Establish Connection", style: Theme.of(context).textTheme.headlineSmall),
+          // Compact Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Connection', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(isWide ? 'Dashboard' : 'Setup', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                  ],
+                ),
+                if (!isWide) ...[
+                  const SizedBox(width: 16),
+                  Container(width: 1, height: 32, color: Colors.white12),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TabBar(
+                      controller: _tabController,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      dividerColor: Colors.transparent,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      isScrollable: true,
+                      tabs: const [
+                        Tab(child: Row(children: [Icon(Icons.search, size: 16), SizedBox(width: 8), Text('Discovery')])),
+                        Tab(child: Row(children: [Icon(Icons.link, size: 16), SizedBox(width: 8), Text('Direct')])),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  const Spacer(), // Push content to left in wide mode or add actions here
+                ],
+              ],
+            ),
+          ),
           const SizedBox(height: 24),
 
-          // Wide layout: Left column (CAN + Direct Connect), Right column (Discovery full height)
+          // Content
           if (isWide)
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left side: CAN Interface + Direct Connect stacked
                   Expanded(
                     child: Column(
                       children: [
@@ -175,7 +214,6 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // Right side: Discovery (full height)
                   Expanded(
                     child: _panelCard(child: _buildDiscoveryTab(), title: "Network Discovery"),
                   ),
@@ -183,37 +221,23 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
               ),
             )
           else
-            // Narrow layout: keep original tab-based layout
-            Column(
-              children: [
-                _buildCanInterfaceSection(),
-                const SizedBox(height: 24),
-                Container(
-                  width: 400,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: Column(
-                    children: [
-                      TabBar(
-                        controller: _tabController,
-                        indicatorColor: Theme.of(context).primaryColor,
-                        dividerColor: Colors.transparent,
-                        tabs: const [
-                          Tab(text: "Network Discovery"),
-                          Tab(text: "Direct Connect"),
-                        ],
+            Expanded(
+              child: Column(
+                children: [
+                  _buildCanInterfaceSection(),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white10),
                       ),
-                      SizedBox(
-                        height: 350,
-                        child: TabBarView(controller: _tabController, children: [_buildDiscoveryTab(), _buildDirectTab()]),
-                      ),
-                    ],
+                      child: TabBarView(controller: _tabController, children: [_buildDiscoveryTab(), _buildDirectTab()]),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
         ],
       ),

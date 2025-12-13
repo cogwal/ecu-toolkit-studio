@@ -72,24 +72,36 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Target Information", style: Theme.of(context).textTheme.headlineSmall),
-                      const SizedBox(height: 4),
-                      Text("Connected to: ${profile.name}", style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
-                    ],
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: () {
-                      _service?.startReading();
-                    },
-                  ),
-                ],
+              // Compact Header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Row(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('Target Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('Connected to: ${profile.name}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                      ],
+                    ),
+                    const Spacer(),
+                    Container(width: 1, height: 32, color: Colors.white12),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      tooltip: 'Refresh Information',
+                      onPressed: () {
+                        _service?.startReading();
+                      },
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
               Expanded(
