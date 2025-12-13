@@ -9,6 +9,9 @@
 //   be freed by calling TK_FreeResource (wrapped as freeResource). Use the
 //   helpers below to convert strings and free resources safely.
 
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: camel_case_types
+
 import 'dart:ffi' as ffi;
 import 'dart:io' show Platform;
 import 'dart:convert' show utf8;

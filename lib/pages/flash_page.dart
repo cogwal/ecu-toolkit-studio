@@ -97,47 +97,59 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Flash Operations', style: Theme.of(context).textTheme.headlineSmall),
-                  const SizedBox(height: 4),
-                  Text('Hardware: $_hardwareType', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
-                ],
-              ),
-              const Spacer(),
-              if (_fdrLoaded)
-                Chip(
-                  avatar: const Icon(Icons.check_circle, color: Colors.green, size: 18),
-                  label: const Text('FDR Loaded'),
-                  backgroundColor: Colors.green.withOpacity(0.1),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Tab bar
+          // Compact Header + Tab Bar
           Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.white10),
             ),
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              tabs: const [
-                Tab(text: 'FDR Setup', icon: Icon(Icons.settings, size: 18)),
-                Tab(text: 'Security', icon: Icon(Icons.lock, size: 18)),
-                Tab(text: 'Bootloader', icon: Icon(Icons.system_update, size: 18)),
-                Tab(text: 'Download', icon: Icon(Icons.download, size: 18)),
-                Tab(text: 'Erase', icon: Icon(Icons.delete_forever, size: 18)),
-                Tab(text: 'Upload', icon: Icon(Icons.upload, size: 18)),
+            child: Row(
+              children: [
+                // Title Section
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Flash Operations', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('HW: $_hardwareType', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Container(width: 1, height: 32, color: Colors.white12),
+                const SizedBox(width: 8),
+
+                // Tabs
+                Expanded(
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    dividerColor: Colors.transparent,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    tabs: const [
+                      Tab(child: Row(children: [Icon(Icons.settings, size: 16), SizedBox(width: 8), Text('FDR Setup')])),
+                      Tab(child: Row(children: [Icon(Icons.lock, size: 16), SizedBox(width: 8), Text('Security')])),
+                      Tab(child: Row(children: [Icon(Icons.system_update, size: 16), SizedBox(width: 8), Text('Bootloader')])),
+                      Tab(child: Row(children: [Icon(Icons.download, size: 16), SizedBox(width: 8), Text('Download')])),
+                      Tab(child: Row(children: [Icon(Icons.delete_forever, size: 16), SizedBox(width: 8), Text('Erase')])),
+                      Tab(child: Row(children: [Icon(Icons.upload, size: 16), SizedBox(width: 8), Text('Upload')])),
+                    ],
+                  ),
+                ),
+
+                // Status
+                if (_fdrLoaded) ...[
+                  const SizedBox(width: 16),
+                  Chip(
+                    avatar: const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                    label: const Text('FDR Loaded', style: TextStyle(fontSize: 11)),
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: Colors.green.withOpacity(0.1),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                ],
               ],
             ),
           ),
@@ -442,27 +454,41 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
   // ============================================================
 
   Widget _buildTabContainer({required IconData icon, required String title, required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 24, color: Colors.blue),
-              const SizedBox(width: 12),
-              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Ensure a minimum height so content doesn't get squashed when log panel is open
+        final minHeight = constraints.maxHeight < 500 ? 500.0 : constraints.maxHeight;
+
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: minHeight),
+            child: IntrinsicHeight(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(icon, size: 24, color: Colors.blue),
+                        const SizedBox(width: 12),
+                        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const Divider(height: 24),
+                    Expanded(child: child),
+                  ],
+                ),
+              ),
+            ),
           ),
-          const Divider(height: 24),
-          Expanded(child: child),
-        ],
-      ),
+        );
+      },
     );
   }
 

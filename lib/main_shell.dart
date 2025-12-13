@@ -106,7 +106,9 @@ class _MainShellState extends State<MainShell> {
     // Define visual state for tabs
     final bool isLocked = _connectedTarget == null;
     final brightness = Theme.of(context).brightness;
-    final Color disabledColor = Theme.of(context).disabledColor.withOpacity(brightness == Brightness.dark ? 0.3 : 0.6);
+    final Color baseDisabledColor = Theme.of(context).disabledColor;
+    final double alphaValue = (brightness == Brightness.dark) ? 0.3 : 0.6;
+    final Color disabledColor = Color.from(alpha: alphaValue, red: baseDisabledColor.r, green: baseDisabledColor.g, blue: baseDisabledColor.b);
     final Color sidebarBg = Theme.of(context).cardColor;
 
     return Scaffold(
