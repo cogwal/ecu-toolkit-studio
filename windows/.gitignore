@@ -1,5 +1,4 @@
 # Ignore compiled native library copies in the windows folder and runner outputs
-ecu_models.dll
 *.pdb
 
 # Ignore runner build artifacts (Debug/Release folders)

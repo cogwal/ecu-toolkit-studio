@@ -81,6 +81,19 @@ install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}
 install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
+# Install TTCTK library and its dependencies
+install(FILES "${PROJECT_SOURCE_DIR}/../lib/native/lib/toolkit/windows_x64/ttctk.dll"
+  DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
+
+install(FILES "${PROJECT_SOURCE_DIR}/../lib/native/lib/toolkit/windows_x64/libcrypto-3-x64.dll"
+  DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
+
+install(FILES "${PROJECT_SOURCE_DIR}/../lib/native/lib/PCAN-Basic/x64/PCANBasic.dll"
+  DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
+
 if(PLUGIN_BUNDLED_LIBRARIES)
   install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"
     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
