@@ -22,8 +22,8 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
   bool _fdrLoaded = false;
 
   // Security state
-  final TextEditingController _secretKey1Controller = TextEditingController();
-  final TextEditingController _secretKey2Controller = TextEditingController();
+  final TextEditingController _secretKey1Controller = TextEditingController(text: '0x84EE5D28, 0xE75DE7CF, 0x118D5080, 0x28D3CAE2');
+  final TextEditingController _secretKey2Controller = TextEditingController(text: '0xF94C35E9, 0x03BA9691, 0x3D4DF7DA, 0x63213EAA');
 
   // Bootloader state
   String? _bootloaderFilePath;
@@ -215,13 +215,13 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildInfoBox(
-            'Security keys are required for privileged flash operations. Enter keys in format:\n{ 0x84EE5D28, 0xE75DE7CF, 0x118D5080, 0x28D3CAE2 }',
+            'Security keys are required for privileged flash operations. Enter keys in format:\n0x84EE5D28, 0xE75DE7CF, 0x118D5080, 0x28D3CAE2',
             icon: Icons.info_outline,
           ),
           const SizedBox(height: 24),
-          _buildSecretKeyField(label: 'Security Level 1', controller: _secretKey1Controller, hint: '{ 0x84EE5D28, 0xE75DE7CF, ... }'),
+          _buildSecretKeyField(label: 'Security Level 1', controller: _secretKey1Controller, hint: '0x84EE5D28, 0xE75DE7CF, ...'),
           const SizedBox(height: 16),
-          _buildSecretKeyField(label: 'Security Level 2', controller: _secretKey2Controller, hint: '{ 0x84EE5D28, 0xE75DE7CF, ... }'),
+          _buildSecretKeyField(label: 'Security Level 2', controller: _secretKey2Controller, hint: '0x84EE5D28, 0xE75DE7CF, ...'),
           const Spacer(),
           _buildActionButton(label: 'Apply Security Settings', icon: Icons.lock_open, onPressed: _applySecuritySettings),
         ],
