@@ -24,7 +24,7 @@ class ConnectionService {
 
     try {
       canInterface.ref.type = TK_CAN_INTERFACE_CATEGORY_PEAK;
-      canInterface.ref.peak.channel = PCAN_USBBUS1;
+      canInterface.peak.ref.channel = PCAN_USBBUS1;
 
       final status = TTCTK.instance.registerCanInterface(canInterface.cast(), TK_CAN_BITRATE_500K, handlePtr.cast());
 

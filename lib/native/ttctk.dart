@@ -200,14 +200,40 @@ final class TkCanInterfaceConfigPeakType extends ffi.Struct {
   external int channel;
 }
 
-// CAN interface union wrapper (simplified for Dart FFI)
+// SocketCAN interface configuration
+final class TkCanInterfaceConfigSocketCanType extends ffi.Struct {
+  @ffi.Array(16) // Interface name, e.g., "can0"
+  external ffi.Array<ffi.Int8> ifName;
+}
+
+// CAN interface union wrapper
+// The C struct has a union of size TK_CAN_INTERFACE_CONFIG_SIZE_MAX (256 bytes).
+// We represent this as a raw byte array to ensure correct memory layout.
 final class TkCanInterfaceType extends ffi.Struct {
   @ffi.Uint32()
   external int type; // TkCanInterfaceCategoryType
 
-  // For simplicity, we use peak config directly.
-  // In a full implementation, this would be a union.
-  external TkCanInterfaceConfigPeakType peak;
+  // Raw union storage - must match TK_CAN_INTERFACE_CONFIG_SIZE_MAX (256 bytes)
+  // This ensures the struct has the correct memory layout for FFI calls.
+  // Access specific config types by casting the pointer offset.
+  @ffi.Array(TK_CAN_INTERFACE_CONFIG_SIZE_MAX)
+  external ffi.Array<ffi.Uint8> raw;
+}
+
+/// Extension to provide convenient access to union members
+extension TkCanInterfaceTypeExt on ffi.Pointer<TkCanInterfaceType> {
+  /// Get pointer to Peak CAN configuration (valid when type == TK_CAN_INTERFACE_CATEGORY_PEAK)
+  ffi.Pointer<TkCanInterfaceConfigPeakType> get peak {
+    // Offset by size of 'type' field + alignment for a 64bit void pointer (8 bytes) to get to the union data
+    final rawOffset = cast<ffi.Uint8>() + 8;
+    return rawOffset.cast<TkCanInterfaceConfigPeakType>();
+  }
+
+  /// Get pointer to SocketCAN configuration (valid when type == TK_CAN_INTERFACE_CATEGORY_SOCKETCAN)
+  ffi.Pointer<TkCanInterfaceConfigSocketCanType> get socketCan {
+    final rawOffset = cast<ffi.Uint8>() + 8;
+    return rawOffset.cast<TkCanInterfaceConfigSocketCanType>();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -808,6 +834,9 @@ class TTCTK {
   int registerCanInterface(ffi.Pointer<ffi.Void> canInterface, int bitrate, ffi.Pointer<ffi.Uint32> handlePtr) {
     loadLibrary();
     if (!available) return -1;
+
+    //
+
     return _tkRegisterCanInterface(canInterface.cast(), bitrate, handlePtr.cast());
   }
 
