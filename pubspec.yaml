@@ -1,5 +1,5 @@
 name: ecu_toolkit_studio
-description: "A new Flutter project."
+description: "A toolkit for ECU development."
 publish_to: 'none'
 version: 0.1.0
 
@@ -10,12 +10,25 @@ dependencies:
   flutter:
     sdk: flutter
   ffi: ^2.0.1
-  file_picker: ^8.0.0
+  file_picker: ^10.3.7
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  inno_bundle: ^0.11.2
 
 flutter:
   uses-material-design: true
+
+inno_bundle:
+  id: 59401551-c793-4002-8a98-c1ed909eb92d
+  name: ECU Toolkit Studio
+  description: A toolkit for ECU development.
+  publisher: Sander Walstock
+  executable: ecu_toolkit_studio.exe
+  admin: false
+  enable_modern_ui: true
+  compression: lzma2/ultra64
+  languages:
+   - english
