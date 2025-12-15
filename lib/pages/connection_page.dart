@@ -29,6 +29,10 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   @override
   void initState() {
+    if (ConnectionService().isCanRegistered) {
+      _canHandle = ConnectionService().canHandle;
+      _canStatus = "Registered (Handle: $_canHandle)";
+    }
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
   }
