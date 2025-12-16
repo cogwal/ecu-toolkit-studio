@@ -3,8 +3,6 @@ import 'dart:isolate';
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
 import '../native/ttctk.dart';
-import '../models/target.dart';
-import '../models/ecu_profile.dart';
 
 class ConnectionService {
   static final ConnectionService _instance = ConnectionService._internal();
@@ -52,59 +50,25 @@ class ConnectionService {
     }
   }
 
-  Future<Target> connectTarget(int sa, int ta, {int durationMs = 5000}) async {
+  Future<bool> connectTarget(int handle, {int durationMs = 5000}) async {
     if (_canHandle == null) {
       throw Exception("CAN interface not registered");
     }
 
-    final addr = TkTargetAddress();
-    addr.type = TK_TARGET_CATEGORY_UDS_ON_CAN;
-    addr.udsOnCan.mType = TK_TARGET_UDS_MTYPE_DIAGNOSTICS;
-    addr.udsOnCan.sa = sa;
-    addr.udsOnCan.ta = ta;
-    addr.udsOnCan.taType = TK_TARGET_UDS_TATYPE_PHYSICAL;
-    addr.udsOnCan.ae = 0;
-    addr.udsOnCan.isotpFormat = TK_TARGET_ISOTP_FORMAT_NORMAL;
-    addr.udsOnCan.canHandle = _canHandle!;
-    addr.udsOnCan.canFormat = TK_CAN_FRAME_FORMAT_BASE;
-
-    final (status, handle) = TTCTK.instance.addTarget(addr);
-
-    if (status != 0) {
-      throw Exception("Failed to add target. Status: $status");
+    final asyncStatus = TTCTK.instance.asyncConnect(handle, durationMs);
+    if (asyncStatus != 0) {
+      throw Exception("Async connect failed immediately. Status: $asyncStatus");
     }
 
-    try {
-      // 3. asyncConnect
-      final asyncStatus = TTCTK.instance.asyncConnect(handle, durationMs);
-      if (asyncStatus != 0) {
-        throw Exception("Async connect failed immediately. Status: $asyncStatus");
-      }
+    // This is a blocking call in the C library. We use Isolate.run to avoid freezing the UI.
+    final connectStatus = await Isolate.run(() {
+      return TTCTK.instance.awaitConnect();
+    });
 
-      // 4. awaitConnect
-      // This is a blocking call in the C library. We use Isolate.run to avoid freezing the UI.
-      final connectStatus = await Isolate.run(() {
-        return TTCTK.instance.awaitConnect();
-      });
-
-      if (connectStatus == 0) {
-        // Calculate CAN IDs for display (Physical Addressing)
-        final txId = 0x7DF + ta; // Simplified calculation as per previous logic
-        final rxId = 0x7E7 + ta;
-
-        return Target(
-          canHandle: _canHandle!,
-          targetHandle: handle,
-          sa: sa,
-          ta: ta,
-          profile: EcuProfile(name: "Target 0x${ta.toRadixString(16).toUpperCase().padLeft(2, '0')}", txId: txId, rxId: rxId),
-        );
-      } else {
-        throw Exception("Connection failed. Status: $connectStatus");
-      }
-    } catch (e) {
-      TTCTK.instance.removeTarget(handle);
-      rethrow;
+    if (connectStatus == 0) {
+      return true;
+    } else {
+      throw Exception("Await connect returned with an error: $connectStatus");
     }
   }
 }

@@ -7,6 +7,7 @@ import 'pages/flash_page.dart';
 import 'pages/settings_page.dart';
 import 'services/log_service.dart';
 import 'widgets/log_panel.dart';
+import 'services/target_manager_service.dart';
 
 class MainShell extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -49,6 +50,18 @@ class _MainShellState extends State<MainShell> {
 
     // Add initial log message
     _logService.info('Application started');
+
+    // Subscribe to TargetManager
+    TargetManager().activeTargetStream.listen((target) {
+      setState(() {
+        _connectedTarget = target;
+        if (target != null) {
+          _selectedIndex = 1; // Auto-jump to Dashboard on connect
+        } else {
+          _selectedIndex = 0; // Return to Connect page
+        }
+      });
+    });
   }
 
   /// Find the most recent log entry that passes the current log level filter
@@ -65,18 +78,13 @@ class _MainShellState extends State<MainShell> {
   }
 
   // --- Connection Logic ---
-  void _handleConnection(Target target) {
-    setState(() {
-      _connectedTarget = target;
-      _selectedIndex = 1; // Auto-jump to Dashboard on connect
-    });
-  }
+  // Handled via TargetManager listener
 
   void _handleDisconnect() {
-    setState(() {
-      _connectedTarget = null;
-      _selectedIndex = 0; // Return to Connect page
-    });
+    final t = TargetManager().activeTarget;
+    if (t != null) {
+      TargetManager().disconnect(t);
+    }
   }
 
   // --- Navigation Logic ---
@@ -96,7 +104,7 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     // Define pages
     final List<Widget> pages = [
-      ConnectionPage(onEcuConnected: _handleConnection),
+      const ConnectionPage(),
       TargetInfoPage(target: _connectedTarget),
       FlashWizardPage(target: _connectedTarget),
       // Settings Page (full-screen like other pages)
