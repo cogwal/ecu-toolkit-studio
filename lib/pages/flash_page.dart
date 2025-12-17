@@ -6,6 +6,8 @@ import '../models/flash_models.dart';
 import '../services/log_service.dart';
 import '../services/target_manager_service.dart';
 import '../native/ttctk.dart';
+import 'dart:ffi' as ffi;
+import 'package:ffi/ffi.dart';
 
 /// Flash operations page with tabbed interface
 class FlashWizardPage extends StatefulWidget {
@@ -293,9 +295,78 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
       return;
     }
 
-    _log.info('Security settings applied (not implemented)');
-    if (key1 != null) _log.debug('Level 1: ${key1.length} words');
-    if (key2 != null) _log.debug('Level 2: ${key2.length} words');
+    if (_activeTarget == null) {
+      _log.error('No active target connected');
+      return;
+    }
+
+    bool success = true;
+
+    if (key1 != null) {
+      if (!_setSecurityLevel(TK_TARGET_UDS_SECURITY_LEVEL_1, key1)) {
+        success = false;
+      }
+    }
+
+    if (key2 != null) {
+      if (!_setSecurityLevel(TK_TARGET_UDS_SECURITY_LEVEL_2, key2)) {
+        success = false;
+      }
+    }
+
+    if (success) {
+      _log.info('Security settings application completed.');
+    } else {
+      _log.warning('Security settings application completed with errors.');
+    }
+  }
+
+  bool _setSecurityLevel(int level, List<int> key) {
+    _log.info('Applying security level $level key...');
+
+    final params = calloc<TkTargetSecurityParametersType>();
+    final secretPtr = calloc<ffi.Uint32>(key.length);
+
+    try {
+      params.ref.type = TK_TARGET_CATEGORY_UDS_ON_CAN;
+
+      // Populate secret buffer (32-bit integers)
+      for (var i = 0; i < key.length; i++) {
+        secretPtr[i] = key[i];
+      }
+
+      final uds = params.uds;
+      // Enable setSecurityLevel and set the level
+      uds.ref.setSecurityLevel = 1; // true
+      uds.ref.securityLevel = level;
+
+      // Enable setSecret and assign the pointer
+      uds.ref.setSecret = 1; // true
+      uds.ref.secret = secretPtr.cast<ffi.Uint8>();
+      uds.ref.secretLength = key.length * 4; // Length in bytes, 32-bit words
+      // log length
+      _log.debug('Secret length: ${uds.ref.secretLength} bytes');
+
+      // Explicitly disable optional fields
+      uds.ref.setAlgorithm = 0; // false
+      uds.ref.setSubfunctions = 0; // false
+
+      final result = TTCTK.instance.setSecurityParameters(_activeTarget!.targetHandle, params);
+
+      if (result != 0) {
+        _log.error('Failed to set security level $level. Error code: $result');
+        return false;
+      } else {
+        _log.info('Security level $level applied successfully.');
+        return true;
+      }
+    } catch (e) {
+      _log.error('Exception setting security level $level: $e');
+      return false;
+    } finally {
+      calloc.free(params);
+      calloc.free(secretPtr);
+    }
   }
 
   // ============================================================
