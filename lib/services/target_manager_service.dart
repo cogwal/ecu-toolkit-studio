@@ -38,7 +38,7 @@ class TargetManager {
 
     final (status, handle) = TTCTK.instance.addTarget(addr);
     if (status != 0) {
-      throw Exception("Failed to add target: $status");
+      LogService().error("Failed to add target to TTC toolkit: $status");
     }
 
     final target = Target(
@@ -70,51 +70,34 @@ class TargetManager {
   }
 
   void removeTarget(Target target) {
-    TTCTK.instance.removeTarget(target.targetHandle);
+    // Change active target if it's the one we're removing
+    if (_activeTarget == target) {
+      Target? newActiveTarget;
+      if (_targets.length > 1) {
+        newActiveTarget = _targets.firstWhere((t) => t != target, orElse: () => _targets.last);
+        if (newActiveTarget == target) newActiveTarget = null;
+      }
+      setActiveTarget(newActiveTarget);
+    }
+
+    final status = TTCTK.instance.removeTarget(target.targetHandle);
+    if (status != 0) {
+      LogService().error("Failed to remove target from TTC toolkit: $status");
+    }
+
     _targets.remove(target);
     _notifyTargetsChanged();
   }
 
-  void setActiveTarget(Target target) {
+  void setActiveTarget(Target? target) {
     if (_activeTarget != target) {
       _activeTarget = target;
       _activeTargetController.add(_activeTarget);
-      LogService().debug("Active target switched to: ${target.profile?.name ?? 'Unknown'}");
-    }
-  }
-
-  void disconnect(Target target) {
-    // In C++ land we might need to remove target.
-    // ConnectionService doesn't expose removeTarget publicly (it catches and removes on error).
-    // We might need to add `removeTarget` to ConnectionService if we want to properly clean up C++ resources.
-    // For now, we'll just remove from our list.
-    // TODO: Call TTCTK.instance.removeTarget(target.targetHandle) if exposed or add to ConnectionService.
-
-    // Actually, looking at ConnectionService, line 106 calls TTCTK.instance.removeTarget(handle).
-    // But it's not exposed as a public method in ConnectionService.
-    // We should arguably add 'disconnectTarget' to ConnectionService.
-
-    _targets.remove(target);
-    _notifyTargetsChanged();
-
-    if (_activeTarget == target) {
-      _activeTarget = _targets.isNotEmpty ? _targets.last : null;
-      _activeTargetController.add(_activeTarget);
-    }
-
-    // Ideally we would close the handle here.
-    // Since I can't easily modify ConnectionService right now without seeing `ttctk.dart` completely,
-    // I will assume for this task connection persistence is fine, or I'll just skip the C++ cleanup
-    // if the user didn't ask for full cleanup yet.
-    // BUT, the user asked for "manage multiple targets".
-    // I'll leave the C++ cleanup as a TODO or I can quickly add a disconnect method to ConnectionService
-    // if I see fit. ConnectionService:43 has deregisterCanInterface.
-  }
-
-  void disconnectAll() {
-    List<Target> all = List.from(_targets);
-    for (var t in all) {
-      disconnect(t);
+      if (target != null) {
+        LogService().debug("Target switched to: ${target.profile?.name ?? 'Unknown'}");
+      } else {
+        LogService().debug("Target cleared");
+      }
     }
   }
 

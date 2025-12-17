@@ -83,7 +83,7 @@ class _MainShellState extends State<MainShell> {
   void _handleDisconnect() {
     final t = TargetManager().activeTarget;
     if (t != null) {
-      TargetManager().disconnect(t);
+      TargetManager().removeTarget(t);
     }
   }
 
