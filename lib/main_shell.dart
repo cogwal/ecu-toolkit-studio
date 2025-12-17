@@ -103,10 +103,11 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     // Define pages
+    // Define pages
     final List<Widget> pages = [
       const ConnectionPage(),
-      TargetInfoPage(target: _connectedTarget),
-      FlashWizardPage(target: _connectedTarget),
+      const TargetInfoPage(),
+      const FlashWizardPage(),
       // Settings Page (full-screen like other pages)
       SettingsPage(isDark: widget.isDark, onToggleTheme: widget.onToggleTheme),
     ];

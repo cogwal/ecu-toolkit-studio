@@ -27,6 +27,7 @@ const int TK_CAN_FD_FRAME_MAX_LENGTH = 64;
 const int TK_TARGET_ADDRESS_CONFIG_SIZE_MAX = 256;
 const int TK_TARGET_PROPERTIES_CONFIG_SIZE_MAX = 256;
 const int TK_CAN_INTERFACE_CONFIG_SIZE_MAX = 256;
+const int TK_TARGET_SECURITY_PARAMETERS_CONFIG_SIZE_MAX = 256;
 
 // CAN Bitrates (from ttctk_can.h)
 const int TK_CAN_BITRATE_5K = 5000;
@@ -67,6 +68,17 @@ const int TK_TARGET_ISOTP_FORMAT_EXTENDED = 1;
 const int TK_TARGET_ISOTP_FORMAT_MIXED = 2;
 const int TK_TARGET_ISOTP_FORMAT_CUSTOM = 3;
 
+// Security Levels
+const int TK_TARGET_UDS_SECURITY_LEVEL_0 = 0;
+const int TK_TARGET_UDS_SECURITY_LEVEL_1 = 1;
+const int TK_TARGET_UDS_SECURITY_LEVEL_2 = 2;
+const int TK_TARGET_UDS_SECURITY_LEVEL_3 = 3;
+
+// Security Algorithms
+const int TK_TARGET_UDS_SECURITY_ALGORITHM_XTEA_64BIT = 0;
+const int TK_TARGET_UDS_SECURITY_ALGORITHM_XTEA_32BIT = 1;
+const int TK_TARGET_UDS_SECURITY_ALGORITHM_AESCMAC_128BIT = 2;
+
 // PCAN USB Channels (from PCANBasic.h)
 const int PCAN_USBBUS1 = 0x51;
 const int PCAN_USBBUS2 = 0x52;
@@ -92,6 +104,7 @@ typedef TkCanBitrateType = ffi.Uint32;
 typedef TkCanInterfaceHandleType = ffi.Uint32;
 typedef TkCanFrameFormatType = ffi.Uint32;
 typedef TkTargetHandleType = ffi.Uint32;
+typedef TkTargetCertificateSlotType = ffi.Uint32;
 
 // Additional types from ttctk_data.h
 typedef TkDiagSessionType = ffi.Uint32;
@@ -316,6 +329,43 @@ final class TkTargetPropertiesType extends ffi.Struct {
   external ffi.Array<ffi.Uint8> raw;
 }
 
+final class TkTargetSecurityParametersConfigUdsType extends ffi.Struct {
+  @ffi.Uint8()
+  external int setSecurityLevel; // bool
+  @ffi.Uint32()
+  external int securityLevel;
+  @ffi.Uint8()
+  external int setSecret; // bool
+  external ffi.Pointer<ffi.Uint8> secret;
+  @ffi.Uint32()
+  external int secretLength;
+  @ffi.Uint8()
+  external int setAlgorithm; // bool
+  @ffi.Uint32()
+  external int algorithm;
+  @ffi.Uint8()
+  external int setSubfunctions; // bool
+  @ffi.Uint8()
+  external int subfunctionRequestSeed;
+  @ffi.Uint8()
+  external int subfunctionSendKey;
+}
+
+final class TkTargetSecurityParametersType extends ffi.Struct {
+  @ffi.Uint32()
+  external int type;
+
+  @ffi.Array(TK_TARGET_SECURITY_PARAMETERS_CONFIG_SIZE_MAX)
+  external ffi.Array<ffi.Uint8> raw;
+}
+
+extension TkTargetSecurityParametersTypeExt on ffi.Pointer<TkTargetSecurityParametersType> {
+  ffi.Pointer<TkTargetSecurityParametersConfigUdsType> get uds {
+    final rawOffset = cast<ffi.Uint8>() + 4;
+    return rawOffset.cast<TkTargetSecurityParametersConfigUdsType>();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Dynamic library loader & helper
 // ---------------------------------------------------------------------------
@@ -353,6 +403,13 @@ class TTCTK {
   late _TK_RemoveTarget _tkRemoveTarget;
   late _TK_SetProgrammingRoutines _tkSetProgrammingRoutines;
   late _TK_SetTargetProperties _tkSetTargetProperties;
+
+  // Security API
+  late _TK_SetSecurityParameters _tkSetSecurityParameters;
+  late _TK_DownloadCertificate _tkDownloadCertificate;
+  late _TK_UpdateRootCertificate _tkUpdateRootCertificate;
+  late _TK_LockDbgPort _tkLockDbgPort;
+  late _TK_LockDbgPortFromBuffer _tkLockDbgPortFromBuffer;
 
   // Program API
   late _TK_AsyncDiscover _tkAsyncDiscover;
@@ -413,6 +470,13 @@ class TTCTK {
       _tkRemoveTarget = _lib.lookupFunction<_c_TK_RemoveTarget, _TK_RemoveTarget>('TK_RemoveTarget');
       _tkSetProgrammingRoutines = _lib.lookupFunction<_c_TK_SetProgrammingRoutines, _TK_SetProgrammingRoutines>('TK_SetProgrammingRoutines');
       _tkSetTargetProperties = _lib.lookupFunction<_c_TK_SetTargetProperties, _TK_SetTargetProperties>('TK_SetTargetProperties');
+
+      // Security
+      _tkSetSecurityParameters = _lib.lookupFunction<_c_TK_SetSecurityParameters, _TK_SetSecurityParameters>('TK_SetSecurityParameters');
+      _tkDownloadCertificate = _lib.lookupFunction<_c_TK_DownloadCertificate, _TK_DownloadCertificate>('TK_DownloadCertificate');
+      _tkUpdateRootCertificate = _lib.lookupFunction<_c_TK_UpdateRootCertificate, _TK_UpdateRootCertificate>('TK_UpdateRootCertificate');
+      _tkLockDbgPort = _lib.lookupFunction<_c_TK_LockDbgPort, _TK_LockDbgPort>('TK_LockDbgPort');
+      _tkLockDbgPortFromBuffer = _lib.lookupFunction<_c_TK_LockDbgPortFromBuffer, _TK_LockDbgPortFromBuffer>('TK_LockDbgPortFromBuffer');
 
       // Program API
       _tkAsyncDiscover = _lib.lookupFunction<_c_TK_AsyncDiscover, _TK_AsyncDiscover>('TK_AsyncDiscover');
@@ -928,6 +992,53 @@ class TTCTK {
     return _tkSetTargetProperties(handle, props.cast());
   }
 
+  int setSecurityParameters(int handle, ffi.Pointer<TkTargetSecurityParametersType> params) {
+    loadLibrary();
+    if (!available) return -1;
+    return _tkSetSecurityParameters(handle, params.cast());
+  }
+
+  int downloadCertificate(int handle, String filePath, int slot) {
+    loadLibrary();
+    if (!available) return -1;
+    final p = filePath.toNativeUtf8();
+    try {
+      return _tkDownloadCertificate(handle, p.cast(), slot);
+    } finally {
+      calloc.free(p);
+    }
+  }
+
+  int updateRootCertificate(int handle, String intermediateCertPath, String newRootCertPath, int slot) {
+    loadLibrary();
+    if (!available) return -1;
+    final p1 = intermediateCertPath.toNativeUtf8();
+    final p2 = newRootCertPath.toNativeUtf8();
+    try {
+      return _tkUpdateRootCertificate(handle, p1.cast(), p2.cast(), slot);
+    } finally {
+      calloc.free(p1);
+      calloc.free(p2);
+    }
+  }
+
+  int lockDbgPort(int handle, String passwordFilePath) {
+    loadLibrary();
+    if (!available) return -1;
+    final p = passwordFilePath.toNativeUtf8();
+    try {
+      return _tkLockDbgPort(handle, p.cast());
+    } finally {
+      calloc.free(p);
+    }
+  }
+
+  int lockDbgPortFromBuffer(int handle, ffi.Pointer<ffi.Uint8> password, int size) {
+    loadLibrary();
+    if (!available) return -1;
+    return _tkLockDbgPortFromBuffer(handle, password, size);
+  }
+
   int asyncDiscover(int durationMs) {
     loadLibrary();
     if (!available) return -1;
@@ -1061,6 +1172,18 @@ typedef _c_TK_SetProgrammingRoutines = ffi.Uint32 Function(ffi.Uint32, ffi.Point
 typedef _TK_SetProgrammingRoutines = int Function(int, ffi.Pointer<ffi.Int8>);
 typedef _c_TK_SetTargetProperties = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Void>);
 typedef _TK_SetTargetProperties = int Function(int, ffi.Pointer<ffi.Void>);
+
+// Security API
+typedef _c_TK_SetSecurityParameters = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Void>);
+typedef _TK_SetSecurityParameters = int Function(int, ffi.Pointer<ffi.Void>);
+typedef _c_TK_DownloadCertificate = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Int8>, ffi.Uint32);
+typedef _TK_DownloadCertificate = int Function(int, ffi.Pointer<ffi.Int8>, int);
+typedef _c_TK_UpdateRootCertificate = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Int8>, ffi.Pointer<ffi.Int8>, ffi.Uint32);
+typedef _TK_UpdateRootCertificate = int Function(int, ffi.Pointer<ffi.Int8>, ffi.Pointer<ffi.Int8>, int);
+typedef _c_TK_LockDbgPort = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Int8>);
+typedef _TK_LockDbgPort = int Function(int, ffi.Pointer<ffi.Int8>);
+typedef _c_TK_LockDbgPortFromBuffer = ffi.Uint32 Function(ffi.Uint32, ffi.Pointer<ffi.Uint8>, ffi.Uint32);
+typedef _TK_LockDbgPortFromBuffer = int Function(int, ffi.Pointer<ffi.Uint8>, int);
 
 // Program API
 typedef _c_TK_AsyncDiscover = ffi.Uint32 Function(ffi.Uint32);

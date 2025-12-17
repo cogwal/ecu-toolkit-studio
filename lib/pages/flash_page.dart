@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import '../models/target.dart';
 import '../models/flash_models.dart';
 import '../services/log_service.dart';
+import '../services/target_manager_service.dart';
+import '../native/ttctk.dart';
 
 /// Flash operations page with tabbed interface
 class FlashWizardPage extends StatefulWidget {
-  final Target? target;
-  const FlashWizardPage({super.key, this.target});
+  const FlashWizardPage({super.key});
 
   @override
   State<FlashWizardPage> createState() => _FlashWizardPageState();
@@ -16,6 +18,9 @@ class FlashWizardPage extends StatefulWidget {
 class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final LogService _log = LogService();
+
+  Target? _activeTarget;
+  StreamSubscription<Target?>? _targetSubscription;
 
   // FDR Setup state
   String? _fdrFilePath;
@@ -46,22 +51,28 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
 
   // Get memory regions for connected hardware
   List<MemoryRegion> get _memoryRegions {
-    final hwType = widget.target?.profile?.hardwareType;
+    final hwType = _activeTarget?.profile?.hardwareType;
     return MemoryConfigurations.getForHardware(hwType).regions;
   }
 
   String get _hardwareType {
-    return widget.target?.profile?.hardwareType ?? 'Unknown';
+    return _activeTarget?.profile?.hardwareType ?? 'Unknown';
   }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
+    _targetSubscription = TargetManager().activeTargetStream.listen((target) {
+      setState(() => _activeTarget = target);
+    });
+    // Set initial value
+    _activeTarget = TargetManager().activeTarget;
   }
 
   @override
   void dispose() {
+    _targetSubscription?.cancel();
     _tabController.dispose();
     _secretKey1Controller.dispose();
     _secretKey2Controller.dispose();
@@ -72,6 +83,7 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
     super.dispose();
   }
 
+  // ... (pickers skipped)
   Future<void> _pickHexFile(void Function(String) onPicked) async {
     final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['hex', 'HEX'], dialogTitle: 'Select HEX File');
     if (result != null && result.files.single.path != null) {
@@ -88,7 +100,7 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
-    if (widget.target == null) {
+    if (_activeTarget == null) {
       return const Center(child: Text('No target connected'));
     }
 
@@ -200,8 +212,26 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
   }
 
   void _loadFdr() {
-    _log.info('Loading FDR from: $_fdrFilePath (not implemented)');
-    setState(() => _fdrLoaded = true);
+    if (_activeTarget == null) {
+      _log.error('No active target');
+      return;
+    }
+    if (_fdrFilePath == null) {
+      _log.error('No FDR file selected');
+      return;
+    }
+
+    _log.info('Loading FDR from: $_fdrFilePath');
+
+    final result = TTCTK.instance.setProgrammingRoutines(_activeTarget!.targetHandle, _fdrFilePath!);
+
+    if (result == 0) {
+      _log.info('FDR loaded successfully');
+      setState(() => _fdrLoaded = true);
+    } else {
+      _log.error('Failed to load FDR. Error code: $result');
+      setState(() => _fdrLoaded = false);
+    }
   }
 
   // ============================================================

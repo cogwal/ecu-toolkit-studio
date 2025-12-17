@@ -3,11 +3,11 @@ import 'dart:async';
 import '../models/target.dart';
 import '../models/ecu_profile.dart';
 import '../services/target_info_service.dart';
+import '../services/target_manager_service.dart';
 
 // --- TARGET INFO PAGE ---
 class TargetInfoPage extends StatefulWidget {
-  final Target? target;
-  const TargetInfoPage({super.key, this.target});
+  const TargetInfoPage({super.key});
 
   @override
   State<TargetInfoPage> createState() => _TargetInfoPageState();
@@ -16,51 +16,61 @@ class TargetInfoPage extends StatefulWidget {
 class _TargetInfoPageState extends State<TargetInfoPage> {
   TargetInfoService? _service;
   Stream<EcuProfile>? _profileStream;
+  Target? _activeTarget;
+  StreamSubscription<Target?>? _targetSubscription;
 
   @override
   void initState() {
     super.initState();
-    _initService();
-  }
-
-  @override
-  void didUpdateWidget(TargetInfoPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.target != oldWidget.target) {
-      _initService();
-    }
+    _targetSubscription = TargetManager().activeTargetStream.listen(_handleTargetChange);
+    // Initialize with current target
+    _handleTargetChange(TargetManager().activeTarget);
   }
 
   @override
   void dispose() {
+    _targetSubscription?.cancel();
     _service?.dispose();
     super.dispose();
   }
 
-  void _initService() {
-    // Dispose previous service if exists
-    _service?.dispose();
+  void _handleTargetChange(Target? target) {
+    if (target == _activeTarget) return;
 
-    if (widget.target != null) {
-      _service = TargetInfoService(widget.target!);
-      _profileStream = _service!.stream;
-      // Start reading immediately
-      _service!.startReading();
-    } else {
-      _service = null;
-      _profileStream = null;
-    }
+    setState(() {
+      _activeTarget = target;
+      _service?.dispose(); // Dispose previous service
+
+      if (target != null) {
+        _service = TargetInfoService(target);
+        _profileStream = _service!.stream;
+
+        // Only read if we don't have basic info yet (e.g. name/hardware type is known)
+        final p = target.profile;
+        bool needsRead = p == null || p.hardwareType == 'Unknown';
+
+        if (needsRead) {
+          _service!.startReading();
+        }
+      } else {
+        _service = null;
+        _profileStream = null;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.target == null) {
+    // Determine target to use (local state)
+    final target = _activeTarget;
+
+    if (target == null) {
       return const Center(child: Text("No Active Connection"));
     }
 
     return StreamBuilder<EcuProfile>(
       stream: _profileStream,
-      initialData: widget.target!.profile,
+      initialData: target.profile,
       builder: (context, snapshot) {
         final profile = snapshot.data;
         if (profile == null) {

@@ -72,6 +72,7 @@ class TargetInfoService {
         appBuildDate: updates['appDate'],
         hsmVersion: updates['hsmVer'],
         hsmBuildDate: updates['hsmDate'],
+        productionCode: updates['productionCode'],
       );
       _controller.add(currentProfile);
 
@@ -140,6 +141,7 @@ Map<String, String> _readTargetInfo(int handle) {
 
   // Identify calls
   safeRead('serial', TTCTK.instance.getDeviceSerialNumber);
+  safeRead('productionCode', TTCTK.instance.getProductionCode);
   // hardware type returns map
   try {
     final hw = TTCTK.instance.getHardwareType(handle);
