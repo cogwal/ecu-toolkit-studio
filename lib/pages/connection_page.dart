@@ -51,25 +51,28 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       return;
     }
 
-    LogService().info("Starting network scan for ECU targets...");
-    setState(() {
-      _isScanning = true;
-      _discoveredTargets.clear();
-    });
+    LogService().info("Feature not yet supported...");
+    return;
 
-    // Scan targets 0x01 to 0x08
-    // TODO Broken, add targets first then do a discovery using the correct APIs
-    // for (int ta = 0x01; ta <= 0x08; ta++) {
-    //   await _connectTarget(0xF1, ta, isDiscovery: true);
-    // }
+    // LogService().info("Starting network scan for ECU targets...");
+    // setState(() {
+    //   _isScanning = true;
+    //   _discoveredTargets.clear();
+    // });
 
-    LogService().info("Network scan completed. Found ${_discoveredTargets.length} target(s)");
-    setState(() {
-      _isScanning = false;
-    });
+    // // Scan targets 0x01 to 0x08
+    // // TODO Broken, add targets first then do a discovery using the correct APIs
+    // // for (int ta = 0x01; ta <= 0x08; ta++) {
+    // //   await _connectTarget(0xF1, ta, isDiscovery: true);
+    // // }
+
+    // LogService().info("Network scan completed. Found ${_discoveredTargets.length} target(s)");
+    // setState(() {
+    //   _isScanning = false;
+    // });
   }
 
-  Future<void> _connectTarget(int sa, int ta, {bool isDiscovery = false}) async {
+  Future<void> _connectTarget(int sa, int ta) async {
     if (!ConnectionService().isCanRegistered) {
       LogService().warning("Please register CAN interface first");
       return;
@@ -77,42 +80,33 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
     final saHex = "0x${sa.toRadixString(16).toUpperCase()}";
     final taHex = "0x${ta.toRadixString(16).toUpperCase()}";
-    LogService().info("Attempting connection to target SA=$saHex, TA=$taHex (timeout: ${_connectionTimeout.toInt()}ms)");
 
     try {
-      // 1. Check if already known in TargetManager
+      Target target;
+      bool validTarget = false;
+
+      // Check if already known in TargetManager
       final existing = TargetManager().targets.where((t) => t.sa == sa && t.ta == ta).firstOrNull;
       if (existing != null) {
-        LogService().info("Target SA=$saHex, TA=$taHex already exists. Checking connection status...");
-        // Retrieve existing handle
-        // If we want to force reconnect, we might need to disconnect first.
-        // For now, let's just create a new target as requested by user logic earlier, or better, reuse it.
-        // User's new TargetManager.addTarget adds a new target unconditionally.
-        // Let's defer to TargetManager.addTarget which creates a new handle.
-        LogService().warning("Re-adding target SA=$saHex, TA=$taHex (Duplicate target logic might need refinment)");
+        // Target already exists, try to connect (again)
+        target = existing;
+        validTarget = true;
+      } else {
+        // Target does not exist, create it
+        target = TargetManager().createTarget(sa, ta, ConnectionService().canHandle!);
       }
 
-      // 2. Add Target via TargetManager (this creates the handle)
-      final canHandle = ConnectionService().canHandle;
-      if (canHandle == null) throw Exception("CAN Handle is null");
+      LogService().info("Connecting to target SA=$saHex, TA=$taHex (timeout: ${_connectionTimeout.toInt()}ms)");
 
-      // We need TargetManager.addTarget to return the Target or the Handle so we can connect.
-      // Currently it returns void. We need to update TargetManager.addTarget or find the target we just added.
-      // This is a flaw in the current TargetManager design provided by user changes.
-      // User changed addTarget to return void.
-      // Let's modify TargetManager to return the Target it created.
-
-      // But I can't modify TargetManager in this step (one file per turn recommended/tool restriction?).
-      // Wait, I can do multiple tools.
-      // Let's Assume I will fix TargetManager in next step. For now I'll write the code as if it returns Target.
-
-      final target = TargetManager().createTarget(sa, ta, canHandle);
-
-      // 3. Connect
+      // Try to connect, failure throws an exception
       final success = await ConnectionService().connectTarget(target.targetHandle, durationMs: _connectionTimeout.toInt());
 
       if (success) {
         LogService().info("Successfully connected to target SA=$saHex, TA=$taHex (handle: ${target.targetHandle})");
+        validTarget = true;
+      }
+
+      if (validTarget) {
         TargetManager().setActiveTarget(target);
       }
     } catch (e) {

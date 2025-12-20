@@ -68,7 +68,7 @@ class ConnectionService {
     if (connectStatus == 0) {
       return true;
     } else {
-      throw Exception("Await connect returned with an error: $connectStatus");
+      throw Exception("Await connect returned with error: $connectStatus");
     }
   }
 }

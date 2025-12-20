@@ -38,7 +38,7 @@ class TargetManager {
 
     final (status, handle) = TTCTK.instance.addTarget(addr);
     if (status != 0) {
-      LogService().error("Failed to add target to TTC toolkit: $status");
+      throw Exception("Failed to add target to TTC toolkit: $status");
     }
 
     final target = Target(
@@ -82,7 +82,7 @@ class TargetManager {
 
     final status = TTCTK.instance.removeTarget(target.targetHandle);
     if (status != 0) {
-      LogService().error("Failed to remove target from TTC toolkit: $status");
+      throw Exception("Failed to remove target from TTC toolkit: $status");
     }
 
     _targets.remove(target);
