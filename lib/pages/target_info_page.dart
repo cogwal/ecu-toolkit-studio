@@ -129,7 +129,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                             runSpacing: 16,
                             children: [
                               _buildInfoCard("Device Serial", profile.serialNumber, Icons.qr_code, width: cardWidth),
-                              _buildInfoCard("Hardware Type", profile.hardwareType, Icons.memory, width: cardWidth),
+                              _buildInfoCard("Hardware Type", "${profile.hardwareName} (${profile.hardwareType})", Icons.memory, width: cardWidth),
                               _buildInfoCard("Production Code", profile.productionCode, Icons.factory, width: cardWidth),
                             ],
                           ),
@@ -139,9 +139,9 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                             spacing: 16,
                             runSpacing: 16,
                             children: [
-                              _buildInfoCard("Bootloader Ver", profile.bootloaderVersion, Icons.system_update, width: cardWidth),
-                              _buildInfoCard("Application Ver", profile.appVersion, Icons.apps, width: cardWidth),
-                              _buildInfoCard("HSM Ver", profile.hsmVersion, Icons.security, width: cardWidth),
+                              _buildInfoCard("Bootloader Version", profile.bootloaderVersion, Icons.system_update, width: cardWidth),
+                              _buildInfoCard("Application Version", profile.appVersion, Icons.apps, width: cardWidth),
+                              _buildInfoCard("HSM Version", profile.hsmVersion, Icons.security, width: cardWidth),
                             ],
                           ),
                           const SizedBox(height: 24),

@@ -9,6 +9,7 @@ class EcuProfile {
   final String appBuildDate;
   final String hsmVersion;
   final String hsmBuildDate;
+  final String hardwareName;
   final String hardwareType;
   final String productionCode;
 
@@ -23,6 +24,7 @@ class EcuProfile {
     this.appBuildDate = '',
     this.hsmVersion = '',
     this.hsmBuildDate = '',
+    this.hardwareName = '',
     this.hardwareType = '',
     this.productionCode = '',
   });
@@ -38,6 +40,7 @@ class EcuProfile {
     appBuildDate: json['appBuildDate'] as String? ?? '',
     hsmVersion: json['hsmVersion'] as String? ?? '',
     hsmBuildDate: json['hsmBuildDate'] as String? ?? '',
+    hardwareName: json['hardwareName'] as String? ?? '',
     hardwareType: json['hardwareType'] as String? ?? '',
     productionCode: json['productionCode'] as String? ?? '',
   );
@@ -53,6 +56,7 @@ class EcuProfile {
     'appBuildDate': appBuildDate,
     'hsmVersion': hsmVersion,
     'hsmBuildDate': hsmBuildDate,
+    'hardwareName': hardwareName,
     'hardwareType': hardwareType,
     'productionCode': productionCode,
   };
@@ -68,6 +72,7 @@ class EcuProfile {
     String? appBuildDate,
     String? hsmVersion,
     String? hsmBuildDate,
+    String? hardwareName,
     String? hardwareType,
     String? productionCode,
   }) {
@@ -82,6 +87,7 @@ class EcuProfile {
       appBuildDate: appBuildDate ?? this.appBuildDate,
       hsmVersion: hsmVersion ?? this.hsmVersion,
       hsmBuildDate: hsmBuildDate ?? this.hsmBuildDate,
+      hardwareName: hardwareName ?? this.hardwareName,
       hardwareType: hardwareType ?? this.hardwareType,
       productionCode: productionCode ?? this.productionCode,
     );

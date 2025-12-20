@@ -772,3 +772,59 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
     );
   }
 }
+
+/// Custom memory range for erase/upload operations
+class CustomMemoryRange {
+  int startAddress;
+  int size;
+
+  CustomMemoryRange({this.startAddress = 0, this.size = 0x1000});
+
+  /// Parse hex string to int, returns null if invalid
+  static int? parseHex(String input) {
+    try {
+      String cleaned = input.trim();
+      if (cleaned.startsWith('0x') || cleaned.startsWith('0X')) {
+        return int.parse(cleaned.substring(2), radix: 16);
+      }
+      return int.parse(cleaned, radix: 16);
+    } catch (e) {
+      return null;
+    }
+  }
+}
+
+/// Security configuration for a security level
+class SecurityConfig {
+  final int level;
+  final List<int> secretKey;
+
+  SecurityConfig({required this.level, required this.secretKey});
+
+  /// Parse secret key from format like: { 0x84EE5D28, 0xE75DE7CF, 0x118D5080, 0x28D3CAE2 }
+  /// or comma-separated hex values: 0x84EE5D28, 0xE75DE7CF, 0x118D5080, 0x28D3CAE2
+  static List<int>? parseSecretKey(String input) {
+    try {
+      // Remove curly braces and whitespace
+      String cleaned = input.replaceAll(RegExp(r'[{}\s]'), '');
+      if (cleaned.isEmpty) return null;
+
+      // Split by comma and parse each value
+      final parts = cleaned.split(',').where((s) => s.isNotEmpty).toList();
+      final result = <int>[];
+
+      for (final part in parts) {
+        final trimmed = part.trim();
+        if (trimmed.startsWith('0x') || trimmed.startsWith('0X')) {
+          result.add(int.parse(trimmed.substring(2), radix: 16));
+        } else {
+          result.add(int.parse(trimmed, radix: 16));
+        }
+      }
+
+      return result.isEmpty ? null : result;
+    } catch (e) {
+      return null;
+    }
+  }
+}

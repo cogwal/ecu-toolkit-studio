@@ -30,17 +30,19 @@ class MemoryRegion {
 }
 
 /// Memory configuration for a specific hardware type
-class HardwareMemoryConfig {
-  final String hardwareType;
+class CPUMemoryConfig {
+  final String hardwareTypeExt; // Each specific hardware type end with the an extention that determines the memory layout for the cpu
+  final String CPUName;
   final List<MemoryRegion> regions;
 
-  const HardwareMemoryConfig({required this.hardwareType, required this.regions});
+  const CPUMemoryConfig({required this.hardwareTypeExt, required this.CPUName, required this.regions});
 }
 
 /// Predefined memory configurations for supported hardware types
 class MemoryConfigurations {
-  static const tcu2 = HardwareMemoryConfig(
-    hardwareType: 'TCU2',
+  static const tc37x = CPUMemoryConfig(
+    hardwareTypeExt: '80D',
+    CPUName: 'TC37x',
     regions: [
       MemoryRegion(id: 0x01, name: 'Application', startAddress: 0x00008000, size: 0x38000), // 224 KB
       MemoryRegion(id: 0x02, name: 'FEE', startAddress: 0x00040000, size: 0x8000), // 32 KB
@@ -49,8 +51,9 @@ class MemoryConfigurations {
     ],
   );
 
-  static const tcu3 = HardwareMemoryConfig(
-    hardwareType: 'TCU3',
+  static const tc39x = CPUMemoryConfig(
+    hardwareTypeExt: 'C0D',
+    CPUName: 'TC39x',
     regions: [
       MemoryRegion(id: 0x01, name: 'Application', startAddress: 0x00010000, size: 0x70000), // 448 KB
       MemoryRegion(id: 0x02, name: 'FEE', startAddress: 0x000A0000, size: 0x10000), // 64 KB
@@ -61,80 +64,12 @@ class MemoryConfigurations {
     ],
   );
 
+  // List of memory configurations
+  static List<CPUMemoryConfig> get all => [tc37x, tc39x];
+
   /// Get configuration by hardware type name
-  static HardwareMemoryConfig getForHardware(String? hardwareType) {
-    final type = hardwareType?.toUpperCase() ?? '';
-    if (type.contains('TCU3')) {
-      return tcu3;
-    } else if (type.contains('TCU2')) {
-      return tcu2;
-    }
-    // Default to TCU3 if unknown
-    return tcu3;
-  }
-
-  static List<HardwareMemoryConfig> get all => [tcu2, tcu3];
-}
-
-/// Security configuration for a security level
-class SecurityConfig {
-  final int level;
-  final List<int> secretKey;
-
-  SecurityConfig({required this.level, required this.secretKey});
-
-  /// Parse secret key from format like: { 0x84EE5D28, 0xE75DE7CF, 0x118D5080, 0x28D3CAE2 }
-  /// or comma-separated hex values: 0x84EE5D28, 0xE75DE7CF, 0x118D5080, 0x28D3CAE2
-  static List<int>? parseSecretKey(String input) {
-    try {
-      // Remove curly braces and whitespace
-      String cleaned = input.replaceAll(RegExp(r'[{}\s]'), '');
-      if (cleaned.isEmpty) return null;
-
-      // Split by comma and parse each value
-      final parts = cleaned.split(',').where((s) => s.isNotEmpty).toList();
-      final result = <int>[];
-
-      for (final part in parts) {
-        final trimmed = part.trim();
-        if (trimmed.startsWith('0x') || trimmed.startsWith('0X')) {
-          result.add(int.parse(trimmed.substring(2), radix: 16));
-        } else {
-          result.add(int.parse(trimmed, radix: 16));
-        }
-      }
-
-      return result.isEmpty ? null : result;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Format secret key back to display string
-  static String formatSecretKey(List<int> keys) {
-    if (keys.isEmpty) return '';
-    final formatted = keys.map((k) => '0x${k.toRadixString(16).toUpperCase().padLeft(8, '0')}').join(', ');
-    return '{ $formatted }';
-  }
-}
-
-/// Custom memory range for erase/upload operations
-class CustomMemoryRange {
-  int startAddress;
-  int size;
-
-  CustomMemoryRange({this.startAddress = 0, this.size = 0x1000});
-
-  /// Parse hex string to int, returns null if invalid
-  static int? parseHex(String input) {
-    try {
-      String cleaned = input.trim();
-      if (cleaned.startsWith('0x') || cleaned.startsWith('0X')) {
-        return int.parse(cleaned.substring(2), radix: 16);
-      }
-      return int.parse(cleaned, radix: 16);
-    } catch (e) {
-      return null;
-    }
+  static CPUMemoryConfig getByHardwareType(String hardwareType) {
+    // Return the first configuration where the hardware type ends with the extension
+    return all.firstWhere((config) => hardwareType.endsWith(config.hardwareTypeExt));
   }
 }

@@ -65,6 +65,7 @@ class TargetInfoService {
       // Apply updates
       currentProfile = currentProfile.copyWith(
         serialNumber: updates['serial'],
+        hardwareName: updates['hwName'],
         hardwareType: updates['hwType'],
         bootloaderVersion: updates['bootVer'],
         bootloaderBuildDate: updates['bootDate'],
@@ -146,7 +147,8 @@ Map<String, String> _readTargetInfo(int handle) {
   try {
     final hw = TTCTK.instance.getHardwareType(handle);
     if (hw != null) {
-      result['hwType'] = "${hw['name']} (${hw['type']})";
+      result['hwType'] = "(${hw['type']})";
+      result['hwName'] = "${hw['name']}";
     }
   } catch (_) {}
 
