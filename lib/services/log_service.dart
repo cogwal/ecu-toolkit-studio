@@ -30,8 +30,8 @@ class LogService {
   final StreamController<LogEntry> _logController = StreamController<LogEntry>.broadcast();
   final StreamController<LogLevel> _minLogLevelController = StreamController<LogLevel>.broadcast();
 
-  /// Minimum log level to display (default: debug shows all)
-  LogLevel _minLogLevel = LogLevel.debug;
+  /// Minimum log level to display (default: info)
+  LogLevel _minLogLevel = LogLevel.info;
 
   /// Get the current minimum log level
   LogLevel get minLogLevel => _minLogLevel;

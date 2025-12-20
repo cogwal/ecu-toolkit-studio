@@ -88,10 +88,7 @@ class _LogPanelState extends State<LogPanel> {
 
     return Container(
       height: widget.height,
-      decoration: BoxDecoration(
-        color: bgColor,
-        border: Border(top: BorderSide(color: Theme.of(context).dividerColor, width: 1)),
-      ),
+      decoration: BoxDecoration(color: bgColor),
       child: Column(
         children: [
           // Header bar

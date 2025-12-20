@@ -24,6 +24,9 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   Target? _connectedTarget;
   bool _isLogPanelVisible = false;
+  double _logPanelHeight = 200.0;
+  static const double _minLogPanelHeight = 100.0;
+  static const double _maxLogPanelHeight = 600.0;
   LogEntry? _lastLogEntry;
   StreamSubscription<LogEntry>? _logSubscription;
   StreamSubscription<LogLevel>? _logLevelSubscription;
@@ -194,7 +197,21 @@ class _MainShellState extends State<MainShell> {
                         child: Stack(children: [Positioned.fill(child: pages[_selectedIndex])]),
                       ),
                       // Log panel (hidden on Settings page, index 3)
-                      if (_isLogPanelVisible && _selectedIndex != 3) LogPanel(onClose: () => setState(() => _isLogPanelVisible = false)),
+                      if (_isLogPanelVisible && _selectedIndex != 3) ...[
+                        MouseRegion(
+                          cursor: SystemMouseCursors.resizeUpDown,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onVerticalDragUpdate: (details) {
+                              setState(() {
+                                _logPanelHeight = (_logPanelHeight - details.delta.dy).clamp(_minLogPanelHeight, _maxLogPanelHeight);
+                              });
+                            },
+                            child: Container(height: 4, color: Theme.of(context).dividerColor.withOpacity(0.1)),
+                          ),
+                        ),
+                        LogPanel(height: _logPanelHeight, onClose: () => setState(() => _isLogPanelVisible = false)),
+                      ],
                     ],
                   ),
                 ),

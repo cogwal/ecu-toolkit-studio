@@ -344,12 +344,18 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
       uds.ref.setSecret = 1; // true
       uds.ref.secret = secretPtr.cast<ffi.Uint8>();
       uds.ref.secretLength = key.length * 4; // Length in bytes, 32-bit words
+
       // log length
       _log.debug('Secret length: ${uds.ref.secretLength} bytes');
+      // log secret uint8 array contents
+      _log.debug('Secret contents: \n ${secretPtr.cast<ffi.Uint8>().asTypedList(key.length * 4).map((e) => e.toRadixString(16)).join(", ")}');
 
       // Explicitly disable optional fields
       uds.ref.setAlgorithm = 0; // false
       uds.ref.setSubfunctions = 0; // false
+
+      // Log params memory layout
+      _log.debug(formatStructLayout(params, ffi.sizeOf<TkTargetSecurityParametersType>(), 'Params memory layout'));
 
       final result = TTCTK.instance.setSecurityParameters(_activeTarget!.targetHandle, params);
 

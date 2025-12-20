@@ -361,7 +361,7 @@ final class TkTargetSecurityParametersType extends ffi.Struct {
 
 extension TkTargetSecurityParametersTypeExt on ffi.Pointer<TkTargetSecurityParametersType> {
   ffi.Pointer<TkTargetSecurityParametersConfigUdsType> get uds {
-    final rawOffset = cast<ffi.Uint8>() + 4;
+    final rawOffset = cast<ffi.Uint8>() + 8;
     return rawOffset.cast<TkTargetSecurityParametersConfigUdsType>();
   }
 }
@@ -1249,3 +1249,24 @@ typedef _TK_ResetTarget = int Function(int);
 // if (version != null) debugPrint('TTCTK version: $version');
 // final status = tk.init(4, null); // init with INFO level and default logfile
 // tk.deinit();
+// -------------------------------------------------------------------------
+// Debug Helpers
+// -------------------------------------------------------------------------
+
+/// Converts a byte list to a hex string.
+String toHexDump(List<int> bytes, {int bytesPerLine = 16}) {
+  final buffer = StringBuffer();
+  for (var i = 0; i < bytes.length; i += bytesPerLine) {
+    final end = (i + bytesPerLine < bytes.length) ? i + bytesPerLine : bytes.length;
+    final chunk = bytes.sublist(i, end);
+    final hex = chunk.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');
+    buffer.writeln(hex);
+  }
+  return buffer.toString().trimRight();
+}
+
+/// Formats the memory layout of an FFI struct as a hex dump.
+String formatStructLayout(ffi.Pointer ptr, int size, String name) {
+  final bytes = ptr.cast<ffi.Uint8>().asTypedList(size);
+  return '$name ($size bytes):\n${toHexDump(bytes)}';
+}
