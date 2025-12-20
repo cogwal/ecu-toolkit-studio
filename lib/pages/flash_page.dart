@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import '../models/target.dart';
-import '../models/flash_models.dart';
+import '../models/hardware_models.dart';
 import '../services/log_service.dart';
 import '../services/target_manager_service.dart';
 import '../native/ttctk.dart';
@@ -53,8 +53,8 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
 
   // Get memory regions for connected hardware
   List<MemoryRegion> get _memoryRegions {
-    final hwType = _activeTarget?.profile?.hardwareType;
-    return MemoryConfigurations.getForHardware(hwType).regions;
+    final hwType = _activeTarget?.profile?.hardwareType ?? '';
+    return MemoryConfigurations.getByHardwareType(hwType)?.regions ?? [];
   }
 
   String get _hardwareType {
@@ -487,8 +487,8 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
       }
       _log.info('Erasing custom range: 0x${start.toRadixString(16)} size 0x${size.toRadixString(16)} (not implemented)');
     } else {
-      final region = _memoryRegions.firstWhere((r) => r.id == _eraseSelectedRegion);
-      _log.info('Erasing ${region.name} (not implemented)');
+      // final region = _memoryRegions.firstWhere((r) => r.id == _eraseSelectedRegion);
+      _log.info('Erasing (not implemented)');
     }
   }
 
@@ -551,8 +551,8 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
       }
       _log.info('Uploading custom range to: $_uploadSaveFilePath (not implemented)');
     } else {
-      final region = _memoryRegions.firstWhere((r) => r.id == _uploadSelectedRegion);
-      _log.info('Uploading ${region.name} to: $_uploadSaveFilePath (not implemented)');
+      // final region = _memoryRegions.firstWhere((r) => r.id == _uploadSelectedRegion);
+      _log.info('Uploading to: $_uploadSaveFilePath (not implemented)');
     }
   }
 

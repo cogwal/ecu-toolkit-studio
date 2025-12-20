@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../native/ttctk.dart';
 import '../models/target.dart';
 import '../models/ecu_profile.dart';
+import '../models/hardware_models.dart';
 import 'log_service.dart';
 
 /// Service for reading target information from an ECU.
@@ -62,11 +63,15 @@ class TargetInfoService {
         return;
       }
 
+      final hwType = updates['hwType'] ?? '';
+      final mappedName = EcuHardwareMap.getEcuName(hwType);
+
       // Apply updates
       currentProfile = currentProfile.copyWith(
+        name: mappedName ?? currentProfile.name,
         serialNumber: updates['serial'],
         hardwareName: updates['hwName'],
-        hardwareType: updates['hwType'],
+        hardwareType: hwType,
         bootloaderVersion: updates['bootVer'],
         bootloaderBuildDate: updates['bootDate'],
         appVersion: updates['appVer'],
@@ -147,7 +152,7 @@ Map<String, String> _readTargetInfo(int handle) {
   try {
     final hw = TTCTK.instance.getHardwareType(handle);
     if (hw != null) {
-      result['hwType'] = "(${hw['type']})";
+      result['hwType'] = "${hw['type']}";
       result['hwName'] = "${hw['name']}";
     }
   } catch (_) {}

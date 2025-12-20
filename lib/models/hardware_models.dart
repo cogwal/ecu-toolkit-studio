@@ -68,8 +68,48 @@ class MemoryConfigurations {
   static List<CPUMemoryConfig> get all => [tc37x, tc39x];
 
   /// Get configuration by hardware type name
-  static CPUMemoryConfig getByHardwareType(String hardwareType) {
-    // Return the first configuration where the hardware type ends with the extension
-    return all.firstWhere((config) => hardwareType.endsWith(config.hardwareTypeExt));
+  static CPUMemoryConfig? getByHardwareType(String hardwareType) {
+    for (final config in all) {
+      if (hardwareType.endsWith(config.hardwareTypeExt)) return config;
+    }
+    return null;
+  }
+}
+
+/// Mapping of hardware type identifiers to ECU names
+class EcuHardwareMap {
+  static const Map<String, String> _typeToName = {
+    '0x0020040D': 'TTC2038',
+    '0x0020080D': 'TTC2310',
+    '0x0040080D': 'TTC2380',
+    '0x0060080D': 'TTC2385',
+    '0x0080080D': 'VOLUTION144',
+    '0x00200C0D': 'TTC2390',
+    '0x00400C0D': 'TTC2740',
+    '0x00600C0D': 'TTC2785',
+  };
+
+  /// Get ECU name from hardware type string
+  ///
+  /// The [hardwareType] string can be in formats like "0x0020040D", "(0x0020040D)", etc.
+  static String? getEcuName(String hardwareType) {
+    // Exact match
+    if (_typeToName.containsKey(hardwareType)) {
+      return _typeToName[hardwareType];
+    }
+
+    // Attempt to extract hex string (e.g., from "(0x0020040D)")
+    final hexMatch = RegExp(r'0x[0-9A-Fa-f]+').firstMatch(hardwareType);
+    if (hexMatch != null) {
+      final hex = hexMatch.group(0)!.toUpperCase();
+      // Try with upper case version
+      for (final key in _typeToName.keys) {
+        if (key.toUpperCase() == hex) {
+          return _typeToName[key];
+        }
+      }
+    }
+
+    return null;
   }
 }
