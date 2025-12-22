@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/ecu_profile.dart';
 import '../models/target.dart';
-import '../services/connection_service.dart';
+import '../services/toolkit_service.dart';
 import '../services/log_service.dart';
 import '../services/target_manager_service.dart';
 
@@ -28,8 +28,8 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   @override
   void initState() {
-    if (ConnectionService().isCanRegistered) {
-      _canHandle = ConnectionService().canHandle;
+    if (ToolkitService().isCanRegistered) {
+      _canHandle = ToolkitService().canHandle;
       _canStatus = "Registered (Handle: $_canHandle)";
     }
     super.initState();
@@ -73,7 +73,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   }
 
   Future<void> _connectTarget(int sa, int ta) async {
-    if (!ConnectionService().isCanRegistered) {
+    if (!ToolkitService().isCanRegistered) {
       LogService().warning("Please register CAN interface first");
       return;
     }
@@ -93,13 +93,13 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
         validTarget = true;
       } else {
         // Target does not exist, create it
-        target = TargetManager().createTarget(sa, ta, ConnectionService().canHandle!);
+        target = TargetManager().createTarget(sa, ta, ToolkitService().canHandle!);
       }
 
       LogService().info("Connecting to target SA=$saHex, TA=$taHex (timeout: ${_connectionTimeout.toInt()}ms)");
 
       // Try to connect, failure throws an exception
-      final success = await ConnectionService().connectTarget(target.targetHandle, durationMs: _connectionTimeout.toInt());
+      final success = await ToolkitService().connectTarget(target.targetHandle, durationMs: _connectionTimeout.toInt());
 
       if (success) {
         LogService().info("Successfully connected to target SA=$saHex, TA=$taHex (handle: ${target.targetHandle})");
@@ -142,9 +142,9 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   void _registerCanInterface() async {
     try {
-      await ConnectionService().registerCanInterface();
+      await ToolkitService().registerCanInterface();
       setState(() {
-        _canHandle = ConnectionService().canHandle;
+        _canHandle = ToolkitService().canHandle;
         _canStatus = "Registered (Handle: $_canHandle)";
       });
       LogService().info("CAN interface registered successfully");
@@ -158,7 +158,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   void _deregisterCanInterface() async {
     try {
-      await ConnectionService().deregisterCanInterface();
+      await ToolkitService().deregisterCanInterface();
       setState(() {
         _canHandle = null;
         _canStatus = "Not registered";
