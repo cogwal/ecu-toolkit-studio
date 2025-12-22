@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:ffi' as ffi;
-import 'package:ffi/ffi.dart';
 import '../../models/target.dart';
 import '../../services/log_service.dart';
 import '../../services/target_manager_service.dart';
 import '../../native/ttctk.dart';
+import '../../services/toolkit_service.dart';
 import 'flash_tab_components.dart';
 
 /// Security Access tab for configuring security keys
@@ -23,6 +22,8 @@ class _SecurityTabState extends State<SecurityTab> {
 
   Target? get _activeTarget => TargetManager().activeTarget;
 
+  final ToolkitService _toolkit = ToolkitService();
+
   @override
   void dispose() {
     _secretKey1Controller.dispose();
@@ -30,7 +31,7 @@ class _SecurityTabState extends State<SecurityTab> {
     super.dispose();
   }
 
-  void _applySecuritySettings() {
+  Future<void> _applySecuritySettings() async {
     final key1 = SecurityConfig.parseSecretKey(_secretKey1Controller.text);
     final key2 = SecurityConfig.parseSecretKey(_secretKey2Controller.text);
 
@@ -51,15 +52,13 @@ class _SecurityTabState extends State<SecurityTab> {
     bool success = true;
 
     if (key1 != null) {
-      if (!_setSecurityLevel(TK_TARGET_UDS_SECURITY_LEVEL_1, key1)) {
-        success = false;
-      }
+      final res = await _toolkit.setSecurityParameters(_activeTarget!.targetHandle, TK_TARGET_UDS_SECURITY_LEVEL_1, key1);
+      if (res != 0) success = false;
     }
 
     if (key2 != null) {
-      if (!_setSecurityLevel(TK_TARGET_UDS_SECURITY_LEVEL_2, key2)) {
-        success = false;
-      }
+      final res = await _toolkit.setSecurityParameters(_activeTarget!.targetHandle, TK_TARGET_UDS_SECURITY_LEVEL_2, key2);
+      if (res != 0) success = false;
     }
 
     if (success) {
@@ -67,60 +66,9 @@ class _SecurityTabState extends State<SecurityTab> {
     } else {
       _log.warning('Security settings application completed with errors.');
     }
-  }
 
-  bool _setSecurityLevel(int level, List<int> key) {
-    _log.info('Applying security level $level key...');
-
-    final params = calloc<TkTargetSecurityParametersType>();
-    final secretPtr = calloc<ffi.Uint32>(key.length);
-
-    try {
-      params.ref.type = TK_TARGET_CATEGORY_UDS_ON_CAN;
-
-      // Populate secret buffer (32-bit integers)
-      for (var i = 0; i < key.length; i++) {
-        secretPtr[i] = key[i];
-      }
-
-      final uds = params.uds;
-      // Enable setSecurityLevel and set the level
-      uds.ref.setSecurityLevel = 1; // true
-      uds.ref.securityLevel = level;
-
-      // Enable setSecret and assign the pointer
-      uds.ref.setSecret = 1; // true
-      uds.ref.secret = secretPtr.cast<ffi.Uint8>();
-      uds.ref.secretLength = key.length * 4; // Length in bytes, 32-bit words
-
-      // log length
-      _log.debug('Secret length: ${uds.ref.secretLength} bytes');
-      // log secret uint8 array contents
-      _log.debug('Secret contents: \n ${secretPtr.cast<ffi.Uint8>().asTypedList(key.length * 4).map((e) => e.toRadixString(16)).join(", ")}');
-
-      // Explicitly disable optional fields
-      uds.ref.setAlgorithm = 0; // false
-      uds.ref.setSubfunctions = 0; // false
-
-      // Log params memory layout
-      _log.debug(formatStructLayout(params, ffi.sizeOf<TkTargetSecurityParametersType>(), 'Params memory layout'));
-
-      final result = TTCTK.instance.setSecurityParameters(_activeTarget!.targetHandle, params);
-
-      if (result != 0) {
-        _log.error('Failed to set security level $level. Error code: $result');
-        return false;
-      } else {
-        _log.info('Security level $level applied successfully.');
-        return true;
-      }
-    } catch (e) {
-      _log.error('Exception setting security level $level: $e');
-      return false;
-    } finally {
-      calloc.free(params);
-      calloc.free(secretPtr);
-    }
+    // Trigger rebuild to update any UI states if necessary
+    setState(() {});
   }
 
   @override

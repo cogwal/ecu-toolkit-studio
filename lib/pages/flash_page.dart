@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/target.dart';
 import '../services/target_manager_service.dart';
+import '../services/toolkit_service.dart';
 import 'flash_tabs/fdr_tab.dart';
 import 'flash_tabs/security_tab.dart';
 import 'flash_tabs/download_tab.dart';
@@ -21,6 +22,7 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
 
   Target? _activeTarget;
   StreamSubscription<Target?>? _targetSubscription;
+  final ToolkitService _toolkit = ToolkitService();
 
   String get _hardwareType {
     return _activeTarget?.profile?.hardwareType ?? 'Unknown';
@@ -35,13 +37,19 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
     });
     // Set initial value
     _activeTarget = TargetManager().activeTarget;
+    _toolkit.addListener(_onToolkitChanged);
   }
 
   @override
   void dispose() {
     _targetSubscription?.cancel();
     _tabController.dispose();
+    _toolkit.removeListener(_onToolkitChanged);
     super.dispose();
+  }
+
+  void _onToolkitChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -95,6 +103,28 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
                     ],
                   ),
                 ),
+
+                // Status
+                if (_toolkit.isFdrLoaded) ...[
+                  const SizedBox(width: 16),
+                  Chip(
+                    avatar: const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                    label: const Text('FDR Loaded', style: TextStyle(fontSize: 11)),
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: Colors.green.withOpacity(0.1),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                ],
+                if (_toolkit.isSecuritySet) ...[
+                  const SizedBox(width: 8),
+                  Chip(
+                    avatar: const Icon(Icons.shield, color: Colors.blue, size: 16),
+                    label: const Text('Security Keys Set', style: TextStyle(fontSize: 11)),
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: Colors.blue.withOpacity(0.1),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                ],
               ],
             ),
           ),
@@ -102,7 +132,7 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
 
           // Tab content
           Expanded(
-            child: TabBarView(controller: _tabController, children: const [FdrTab(), SecurityTab(), DownloadTab(), EraseTab(), UploadTab()]),
+            child: TabBarView(controller: _tabController, children: [const FdrTab(), SecurityTab(), DownloadTab(), EraseTab(), UploadTab()]),
           ),
         ],
       ),

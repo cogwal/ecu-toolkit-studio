@@ -3,7 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../models/target.dart';
 import '../../services/log_service.dart';
 import '../../services/target_manager_service.dart';
-import '../../native/ttctk.dart';
+import '../../services/toolkit_service.dart';
 import 'flash_tab_components.dart';
 
 /// FDR Setup tab for loading flash driver routines
@@ -11,14 +11,14 @@ class FdrTab extends StatefulWidget {
   const FdrTab({super.key});
 
   @override
-  State<FdrTab> createState() => _FdrTabState();
+  State<FdrTab> createState() => FdrTabState();
 }
 
-class _FdrTabState extends State<FdrTab> {
+class FdrTabState extends State<FdrTab> {
   final LogService _log = LogService();
+  final ToolkitService _toolkit = ToolkitService();
 
   String? _fdrFilePath;
-  bool _fdrLoaded = false;
 
   Target? get _activeTarget => TargetManager().activeTarget;
 
@@ -33,7 +33,7 @@ class _FdrTabState extends State<FdrTab> {
     }
   }
 
-  void _loadFdr() {
+  Future<void> _loadFdr() async {
     if (_activeTarget == null) {
       _log.error('No active target');
       return;
@@ -43,21 +43,10 @@ class _FdrTabState extends State<FdrTab> {
       return;
     }
 
-    _log.info('Loading FDR from: $_fdrFilePath');
-
-    final result = TTCTK.instance.setProgrammingRoutines(_activeTarget!.targetHandle, _fdrFilePath!);
-
-    if (result == 0) {
-      _log.info('FDR loaded successfully');
-      setState(() => _fdrLoaded = true);
-    } else {
-      _log.error('Failed to load FDR. Error code: $result');
-      setState(() => _fdrLoaded = false);
-    }
+    await _toolkit.loadFdr(_activeTarget!.targetHandle, _fdrFilePath!);
+    // Trigger rebuild to update status indicator
+    setState(() {});
   }
-
-  /// Returns whether FDR is loaded (for parent widget status display)
-  bool get isFdrLoaded => _fdrLoaded;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +67,7 @@ class _FdrTabState extends State<FdrTab> {
           Row(
             children: [
               Expanded(
-                child: FlashStatusIndicator(label: 'Status', value: _fdrLoaded ? 'Loaded' : 'Not loaded', isOk: _fdrLoaded),
+                child: FlashStatusIndicator(label: 'Status', value: _toolkit.isFdrLoaded ? 'Loaded' : 'Not loaded', isOk: _toolkit.isFdrLoaded),
               ),
             ],
           ),
