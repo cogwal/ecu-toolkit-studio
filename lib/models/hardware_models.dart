@@ -44,10 +44,26 @@ class MemoryConfigurations {
     hardwareTypeExt: '80D',
     CPUName: 'TC37x',
     regions: [
-      MemoryRegion(id: 0x01, name: 'Application', startAddress: 0x00008000, size: 0x38000), // 224 KB
-      MemoryRegion(id: 0x02, name: 'FEE', startAddress: 0x00040000, size: 0x8000), // 32 KB
-      MemoryRegion(id: 0x05, name: 'Branding Block', startAddress: 0x00048000, size: 0x800), // 2 KB
-      MemoryRegion(id: 0x06, name: 'APDB', startAddress: 0x00049000, size: 0x800), // 2 KB
+      MemoryRegion(id: 0x00, name: 'Bootloader', startAddress: 0x80000000, size: 0x30000), // 192 KB
+      MemoryRegion(id: 0x00, name: 'Application', startAddress: 0x80060000, size: 0x5A0000), // 5.625 MB
+      MemoryRegion(id: 0x00, name: 'Branding Block', startAddress: 0xAF03E000, size: 0x1000), // 4 KB
+      MemoryRegion(id: 0x00, name: 'Flash Emulated EEPROM', startAddress: 0xAF000000, size: 0x3E000), // ~248 KB
+      MemoryRegion(id: 0x00, name: 'Flash Driver', startAddress: 0x7010C000, size: 0x4000), // 16 KB
+      MemoryRegion(id: 0x01, name: 'External NOR Flash', startAddress: 0x00000000, size: 0x1000000), // 16 MB
+      MemoryRegion(id: 0x02, name: 'External FRAM', startAddress: 0x00000000, size: 0x2000), // 8 KB
+    ],
+  );
+
+  static const tc36x = CPUMemoryConfig(
+    hardwareTypeExt: '40D',
+    CPUName: 'TC36x',
+    regions: [
+      MemoryRegion(id: 0x00, name: 'Bootloader', startAddress: 0x80000000, size: 0x30000), // 192 KB
+      MemoryRegion(id: 0x00, name: 'Application 1', startAddress: 0x80060000, size: 0x1A0000), // 1.625 MB
+      MemoryRegion(id: 0x00, name: 'Application 2', startAddress: 0x80300000, size: 0x200000), // 2 MB
+      MemoryRegion(id: 0x00, name: 'Branding Block', startAddress: 0xAF01E000, size: 0x1000), // 4 KB
+      MemoryRegion(id: 0x00, name: 'Flash Emulated EEPROM', startAddress: 0xAF000000, size: 0x1E000), // 120 KB
+      MemoryRegion(id: 0x00, name: 'Flash Driver', startAddress: 0x70104000, size: 0x4000), // 16 KB
     ],
   );
 
@@ -55,17 +71,18 @@ class MemoryConfigurations {
     hardwareTypeExt: 'C0D',
     CPUName: 'TC39x',
     regions: [
-      MemoryRegion(id: 0x01, name: 'Application', startAddress: 0x00010000, size: 0x70000), // 448 KB
-      MemoryRegion(id: 0x02, name: 'FEE', startAddress: 0x000A0000, size: 0x10000), // 64 KB
-      MemoryRegion(id: 0x03, name: 'External Flash', startAddress: 0x10000000, size: 0x1000000), // 16 MB
-      MemoryRegion(id: 0x04, name: 'FRAM', startAddress: 0x20000000, size: 0x2000), // 8 KB
-      MemoryRegion(id: 0x05, name: 'Branding Block', startAddress: 0x00092000, size: 0x1000), // 4 KB
-      MemoryRegion(id: 0x06, name: 'APDB', startAddress: 0x00090000, size: 0x1000), // 4 KB
+      MemoryRegion(id: 0x00, name: 'Bootloader', startAddress: 0x80000000, size: 0x30000), // 192 KB
+      MemoryRegion(id: 0x00, name: 'Application', startAddress: 0x80060000, size: 0xFA0000), // 15.625 MB
+      MemoryRegion(id: 0x00, name: 'Branding Block', startAddress: 0xAF0FE000, size: 0x1000), // 4 KB
+      MemoryRegion(id: 0x00, name: 'Flash Emulated EEPROM', startAddress: 0xAF000000, size: 0xFE000), // ~1 MB
+      MemoryRegion(id: 0x00, name: 'Flash Driver', startAddress: 0x7010C000, size: 0x4000), // 16 KB
+      MemoryRegion(id: 0x01, name: 'External NOR Flash', startAddress: 0x00000000, size: 0x2000000), // 32 MB
+      MemoryRegion(id: 0x02, name: 'External FRAM', startAddress: 0x00000000, size: 0x2000), // 8 KB
     ],
   );
 
   // List of memory configurations
-  static List<CPUMemoryConfig> get all => [tc37x, tc39x];
+  static List<CPUMemoryConfig> get all => [tc37x, tc39x, tc36x];
 
   /// Get configuration by hardware type name
   static CPUMemoryConfig? getByHardwareType(String hardwareType) {
