@@ -178,7 +178,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     final isWide = width >= 900;
 
     return Padding(
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
