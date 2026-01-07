@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/hardware_models.dart';
 
 /// Reusable container for flash operation tabs
-class FlashTabContainer extends StatelessWidget {
+class FlashTabContainer extends StatefulWidget {
   final IconData icon;
   final String title;
   final Widget child;
@@ -10,42 +10,53 @@ class FlashTabContainer extends StatelessWidget {
   const FlashTabContainer({super.key, required this.icon, required this.title, required this.child});
 
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Ensure a minimum height so content doesn't get squashed when log panel is open
-        final minHeight = constraints.maxHeight < 500 ? 500.0 : constraints.maxHeight;
+  State<FlashTabContainer> createState() => _FlashTabContainerState();
+}
 
-        return SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: minHeight),
-            child: IntrinsicHeight(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(icon, size: 24, color: Colors.blue),
-                        const SizedBox(width: 12),
-                        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    Expanded(child: child),
-                  ],
-                ),
+class _FlashTabContainerState extends State<FlashTabContainer> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Icon(widget.icon, size: 24, color: Colors.blue),
+                      const SizedBox(width: 12),
+                      Text(widget.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                ],
               ),
             ),
-          ),
-        );
-      },
+            SliverFillRemaining(hasScrollBody: false, child: widget.child),
+          ],
+        ),
+      ),
     );
   }
 }

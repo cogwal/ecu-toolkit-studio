@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:ffi' as ffi;
-import 'package:ffi/ffi.dart';
 import '../native/ttctk.dart';
 import '../models/target.dart';
 import '../models/ecu_profile.dart';

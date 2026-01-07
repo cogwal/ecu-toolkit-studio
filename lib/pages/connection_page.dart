@@ -138,6 +138,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
     LogService().debug("Adding mock target to manager");
     TargetManager().addTarget(target);
+    TargetManager().setActiveTarget(target);
   }
 
   void _registerCanInterface() async {
@@ -435,7 +436,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Connection Timeout: " + ((_connectionTimeout.toInt() == 0) ? "Indefinite" : "${_connectionTimeout.toInt()} ms"),
+                "Connection Timeout: ${(_connectionTimeout.toInt() == 0) ? "Indefinite" : "${_connectionTimeout.toInt()} ms"}",
                 style: const TextStyle(fontSize: 13),
               ),
               Slider(
