@@ -19,6 +19,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
   EcuProfile? _profile;
   StreamSubscription<Target?>? _targetSubscription;
   bool _isReading = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
   @override
   void dispose() {
     _targetSubscription?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -126,43 +128,48 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
               builder: (context, constraints) {
                 final cardWidth = 280.0;
 
-                return SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionHeader("Hardware"),
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        children: [
-                          _buildInfoCard("Device Serial", profile.serialNumber, Icons.qr_code, width: cardWidth),
-                          _buildInfoCard("Hardware Type", "${profile.hardwareName} (${profile.hardwareType})", Icons.memory, width: cardWidth),
-                          _buildInfoCard("Production Code", profile.productionCode, Icons.factory, width: cardWidth),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _buildSectionHeader("Software"),
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        children: [
-                          _buildInfoCard("Bootloader Version", profile.bootloaderVersion, Icons.system_update, width: cardWidth),
-                          _buildInfoCard("Application Version", profile.appVersion, Icons.apps, width: cardWidth),
-                          _buildInfoCard("HSM Version", profile.hsmVersion, Icons.security, width: cardWidth),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _buildSectionHeader("Build Dates"),
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        children: [
-                          _buildInfoCard("Bootloader Date", profile.bootloaderBuildDate, Icons.calendar_today, width: cardWidth),
-                          _buildInfoCard("App Build Date", profile.appBuildDate, Icons.calendar_today, width: cardWidth),
-                          _buildInfoCard("HSM Build Date", profile.hsmBuildDate, Icons.calendar_today, width: cardWidth),
-                        ],
-                      ),
-                    ],
+                return Scrollbar(
+                  controller: _scrollController,
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader("Hardware"),
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 16,
+                          children: [
+                            _buildInfoCard("Device Serial", profile.serialNumber, Icons.qr_code, width: cardWidth),
+                            _buildInfoCard("Hardware Type", "${profile.hardwareName} (${profile.hardwareType})", Icons.memory, width: cardWidth),
+                            _buildInfoCard("Production Code", profile.productionCode, Icons.factory, width: cardWidth),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        _buildSectionHeader("Software"),
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 16,
+                          children: [
+                            _buildInfoCard("Bootloader Version", profile.bootloaderVersion, Icons.system_update, width: cardWidth),
+                            _buildInfoCard("Application Version", profile.appVersion, Icons.apps, width: cardWidth),
+                            _buildInfoCard("HSM Version", profile.hsmVersion, Icons.security, width: cardWidth),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        _buildSectionHeader("Build Dates"),
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 16,
+                          children: [
+                            _buildInfoCard("Bootloader Date", profile.bootloaderBuildDate, Icons.calendar_today, width: cardWidth),
+                            _buildInfoCard("App Build Date", profile.appBuildDate, Icons.calendar_today, width: cardWidth),
+                            _buildInfoCard("HSM Build Date", profile.hsmBuildDate, Icons.calendar_today, width: cardWidth),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },

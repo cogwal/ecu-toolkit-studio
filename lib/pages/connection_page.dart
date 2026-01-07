@@ -20,6 +20,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   final TextEditingController _saController = TextEditingController(text: "F1");
   final TextEditingController _taController = TextEditingController(text: "08");
+  final ScrollController _directTabScrollController = ScrollController();
   double _connectionTimeout = 5000;
 
   // CAN interface handle
@@ -41,6 +42,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     _tabController.dispose();
     _saController.dispose();
     _taController.dispose();
+    _directTabScrollController.dispose();
     // We might want to deregister CAN on dispose if that's desired, but usually connection persists.
     super.dispose();
   }
@@ -386,8 +388,12 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   }
 
   Widget _buildDirectTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(12.0),
+    return Scrollbar(
+      controller: _directTabScrollController,
+      thumbVisibility: true,
+      child: SingleChildScrollView(
+        controller: _directTabScrollController,
+        padding: const EdgeInsets.all(12.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
@@ -455,6 +461,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
           ),
         ],
       ),
+    ),
     );
   }
 }
