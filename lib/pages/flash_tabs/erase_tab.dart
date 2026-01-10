@@ -16,7 +16,7 @@ class EraseTab extends StatefulWidget {
 class _EraseTabState extends State<EraseTab> {
   final LogService _log = LogService();
 
-  int? _eraseSelectedRegion;
+  int? _eraseSelectedIndex;
   bool _eraseUseCustomRange = false;
   final TextEditingController _eraseStartController = TextEditingController(text: '0x00000000');
   final TextEditingController _eraseSizeController = TextEditingController(text: '0x1000');
@@ -44,8 +44,9 @@ class _EraseTabState extends State<EraseTab> {
         return;
       }
       _log.info('Erasing custom range: 0x${start.toRadixString(16)} size 0x${size.toRadixString(16)} (not implemented)');
-    } else {
-      _log.info('Erasing (not implemented)');
+    } else if (_eraseSelectedIndex != null) {
+      final region = _memoryRegions[_eraseSelectedIndex!];
+      _log.info('Erasing region: ${region.name} (not implemented)');
     }
   }
 
@@ -63,16 +64,16 @@ class _EraseTabState extends State<EraseTab> {
             child: SingleChildScrollView(
               child: FlashRegionSelector(
                 memoryRegions: _memoryRegions,
-                selectedId: _eraseUseCustomRange ? -1 : _eraseSelectedRegion,
-                onChanged: (id) => setState(() {
-                  _eraseSelectedRegion = id;
+                selectedIndex: _eraseUseCustomRange ? -1 : _eraseSelectedIndex,
+                onChanged: (index) => setState(() {
+                  _eraseSelectedIndex = index;
                   _eraseUseCustomRange = false;
                 }),
                 showCustom: true,
                 customSelected: _eraseUseCustomRange,
                 onCustomSelected: () => setState(() {
                   _eraseUseCustomRange = true;
-                  _eraseSelectedRegion = null;
+                  _eraseSelectedIndex = null;
                 }),
                 customStartController: _eraseStartController,
                 customSizeController: _eraseSizeController,
@@ -86,7 +87,7 @@ class _EraseTabState extends State<EraseTab> {
             label: 'Erase',
             icon: Icons.delete_forever,
             isDestructive: true,
-            onPressed: (_eraseSelectedRegion != null || _eraseUseCustomRange) ? _performErase : null,
+            onPressed: (_eraseSelectedIndex != null || _eraseUseCustomRange) ? _performErase : null,
           ),
         ],
       ),

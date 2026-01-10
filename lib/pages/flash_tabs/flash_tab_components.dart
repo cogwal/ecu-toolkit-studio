@@ -106,7 +106,7 @@ class FlashFileSelector extends StatelessWidget {
 /// Memory region selector with custom range option
 class FlashRegionSelector extends StatelessWidget {
   final List<MemoryRegion> memoryRegions;
-  final int? selectedId;
+  final int? selectedIndex;
   final void Function(int) onChanged;
   final bool showCustom;
   final bool customSelected;
@@ -117,7 +117,7 @@ class FlashRegionSelector extends StatelessWidget {
   const FlashRegionSelector({
     super.key,
     required this.memoryRegions,
-    required this.selectedId,
+    required this.selectedIndex,
     required this.onChanged,
     required this.showCustom,
     this.customSelected = false,
@@ -137,14 +137,14 @@ class FlashRegionSelector extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...memoryRegions.map(
-            (region) => RadioListTile<int>(
-              value: region.id,
-              groupValue: selectedId,
+          ...memoryRegions.asMap().entries.map(
+            (entry) => RadioListTile<int>(
+              value: entry.key,
+              groupValue: selectedIndex,
               onChanged: (v) => onChanged(v!),
-              title: Text(region.name),
+              title: Text(entry.value.name),
               subtitle: Text(
-                '${region.startAddressHex}, ${region.sizeFormatted}',
+                '${entry.value.startAddressHex}, ${entry.value.sizeFormatted}',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontFamily: 'monospace'),
               ),
               dense: true,
@@ -155,7 +155,7 @@ class FlashRegionSelector extends StatelessWidget {
             const Divider(),
             RadioListTile<int>(
               value: -1,
-              groupValue: customSelected ? -1 : selectedId,
+              groupValue: customSelected ? -1 : selectedIndex,
               onChanged: (v) => onCustomSelected?.call(),
               title: const Text('Custom Range'),
               dense: true,

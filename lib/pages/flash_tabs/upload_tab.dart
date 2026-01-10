@@ -18,7 +18,7 @@ class UploadTab extends StatefulWidget {
 class _UploadTabState extends State<UploadTab> {
   final LogService _log = LogService();
 
-  int? _uploadSelectedRegion;
+  int? _uploadSelectedIndex;
   bool _uploadUseCustomRange = false;
   final TextEditingController _uploadStartController = TextEditingController(text: '0x00000000');
   final TextEditingController _uploadSizeController = TextEditingController(text: '0x1000');
@@ -54,8 +54,9 @@ class _UploadTabState extends State<UploadTab> {
         return;
       }
       _log.info('Uploading custom range to: $_uploadSaveFilePath (not implemented)');
-    } else {
-      _log.info('Uploading to: $_uploadSaveFilePath (not implemented)');
+    } else if (_uploadSelectedIndex != null) {
+      final region = _memoryRegions[_uploadSelectedIndex!];
+      _log.info('Uploading region ${region.name} to: $_uploadSaveFilePath (not implemented)');
     }
   }
 
@@ -73,16 +74,16 @@ class _UploadTabState extends State<UploadTab> {
             child: SingleChildScrollView(
               child: FlashRegionSelector(
                 memoryRegions: _memoryRegions,
-                selectedId: _uploadUseCustomRange ? -1 : _uploadSelectedRegion,
-                onChanged: (id) => setState(() {
-                  _uploadSelectedRegion = id;
+                selectedIndex: _uploadUseCustomRange ? -1 : _uploadSelectedIndex,
+                onChanged: (index) => setState(() {
+                  _uploadSelectedIndex = index;
                   _uploadUseCustomRange = false;
                 }),
                 showCustom: true,
                 customSelected: _uploadUseCustomRange,
                 onCustomSelected: () => setState(() {
                   _uploadUseCustomRange = true;
-                  _uploadSelectedRegion = null;
+                  _uploadSelectedIndex = null;
                 }),
                 customStartController: _uploadStartController,
                 customSizeController: _uploadSizeController,
@@ -95,7 +96,7 @@ class _UploadTabState extends State<UploadTab> {
           FlashActionButton(
             label: 'Upload',
             icon: Icons.upload,
-            onPressed: ((_uploadSelectedRegion != null || _uploadUseCustomRange) && _uploadSaveFilePath != null) ? _performUpload : null,
+            onPressed: ((_uploadSelectedIndex != null || _uploadUseCustomRange) && _uploadSaveFilePath != null) ? _performUpload : null,
           ),
         ],
       ),
