@@ -144,17 +144,10 @@ class ToolkitService with ChangeNotifier {
   /// Uses memId=0. Runs in an isolate to avoid blocking the UI.
   /// Returns 0 on success, non-zero error code on failure.
   Future<int> downloadHexFile(int targetHandle, String filePath) async {
-    _log.info("Starting download: $filePath");
-
     final result = await Isolate.run(() {
+      // TODO: we could automatically determine the memid from the hex file and hardware model used
       return TTCTK.instance.writeFromFile(targetHandle, 0, filePath);
     });
-
-    if (result == 0) {
-      _log.info("Download completed successfully");
-    } else {
-      _log.error("Download failed with error code: $result");
-    }
 
     return result;
   }

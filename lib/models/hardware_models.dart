@@ -1,7 +1,6 @@
 /// Models for Flash operations
 ///
-/// Contains memory region definitions, hardware configurations,
-/// and security settings for flash memory operations.
+/// Contains memory region definitions and hardware type mappings
 
 /// Represents a memory region with address and size
 class MemoryRegion {

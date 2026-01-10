@@ -38,6 +38,18 @@ class _DownloadTabState extends State<DownloadTab> {
       return;
     }
 
+    // Validation: FDR must be loaded
+    if (!ToolkitService().isFdrLoaded) {
+      _showErrorSnackBar('FDR must be loaded before downloading.');
+      return;
+    }
+
+    // Validation: Security must be set
+    if (!ToolkitService().isSecuritySet) {
+      _showErrorSnackBar('Security keys must be set before downloading.');
+      return;
+    }
+
     setState(() => _isDownloading = true);
 
     try {
@@ -56,6 +68,23 @@ class _DownloadTabState extends State<DownloadTab> {
         setState(() => _isDownloading = false);
       }
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
