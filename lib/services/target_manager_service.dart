@@ -68,6 +68,7 @@ class TargetManager {
   }
 
   void removeTarget(Target target) {
+    // TO check Active target is not set after disconnecting and reconnecting to same target??
     // Change active target if it's the one we're removing
     if (_activeTarget == target) {
       Target? newActiveTarget;

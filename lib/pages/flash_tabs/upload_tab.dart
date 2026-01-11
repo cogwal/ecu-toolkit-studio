@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../models/target.dart';
 import '../../models/hardware_models.dart';
+import '../../services/toolkit_service.dart';
 import '../../services/log_service.dart';
 import '../../services/target_manager_service.dart';
 import 'flash_tab_components.dart';
@@ -22,7 +23,6 @@ class _UploadTabState extends State<UploadTab> {
   bool _uploadUseCustomRange = false;
   final TextEditingController _uploadStartController = TextEditingController(text: '0x00000000');
   final TextEditingController _uploadSizeController = TextEditingController(text: '0x1000');
-  String? _uploadSaveFilePath;
 
   Target? get _activeTarget => TargetManager().activeTarget;
 
@@ -41,7 +41,7 @@ class _UploadTabState extends State<UploadTab> {
   Future<void> _pickSaveLocation() async {
     final result = await FilePicker.platform.saveFile(dialogTitle: 'Save As', fileName: 'upload_output.hex', type: FileType.custom, allowedExtensions: ['hex']);
     if (result != null) {
-      setState(() => _uploadSaveFilePath = result);
+      setState(() => ToolkitService().setUploadSaveFilePath(result));
     }
   }
 
@@ -53,10 +53,10 @@ class _UploadTabState extends State<UploadTab> {
         _log.error('Invalid custom range values');
         return;
       }
-      _log.info('Uploading custom range to: $_uploadSaveFilePath (not implemented)');
+      _log.info('Uploading custom range to: ${ToolkitService().uploadSaveFilePath} (not implemented)');
     } else if (_uploadSelectedIndex != null) {
       final region = _memoryRegions[_uploadSelectedIndex!];
-      _log.info('Uploading region ${region.name} to: $_uploadSaveFilePath (not implemented)');
+      _log.info('Uploading region ${region.name} to: ${ToolkitService().uploadSaveFilePath} (not implemented)');
     }
   }
 
@@ -91,12 +91,12 @@ class _UploadTabState extends State<UploadTab> {
             ),
           ),
           const SizedBox(height: 16),
-          FlashFileSelector(label: 'Save to', value: _uploadSaveFilePath, onBrowse: _pickSaveLocation, isSave: true),
+          FlashFileSelector(label: 'Save to', value: ToolkitService().uploadSaveFilePath, onBrowse: _pickSaveLocation, isSave: true),
           const SizedBox(height: 16),
           FlashActionButton(
             label: 'Upload',
             icon: Icons.upload,
-            onPressed: ((_uploadSelectedIndex != null || _uploadUseCustomRange) && _uploadSaveFilePath != null) ? _performUpload : null,
+            onPressed: ((_uploadSelectedIndex != null || _uploadUseCustomRange) && ToolkitService().uploadSaveFilePath != null) ? _performUpload : null,
           ),
         ],
       ),

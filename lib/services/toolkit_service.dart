@@ -10,6 +10,15 @@ import '../models/ecu_profile.dart';
 import '../models/hardware_models.dart';
 import 'log_service.dart';
 
+/// Exception thrown when an operation is attempted while another is in progress.
+class OperationInProgressException implements Exception {
+  final String operationName;
+  OperationInProgressException(this.operationName);
+
+  @override
+  String toString() => 'Operation in progress: $operationName';
+}
+
 /// Unified service for toolkit operations.
 ///
 /// Provides CAN interface management, target connection, target info reading,
@@ -21,6 +30,18 @@ class ToolkitService with ChangeNotifier {
   ToolkitService._internal();
 
   final LogService _log = LogService();
+
+  // ============================================================
+  // Operation Locking
+  // ============================================================
+
+  String? _activeOperation;
+
+  /// Returns true if an operation is currently in progress.
+  bool get isOperationPending => _activeOperation != null;
+
+  /// Returns the name of the currently active operation, or null if none.
+  String? get activeOperationName => _activeOperation;
 
   // ============================================================
   // CAN Interface Management
@@ -69,24 +90,36 @@ class ToolkitService with ChangeNotifier {
   /// Connects to a target ECU.
   /// Returns true on success. Throws exception on failure.
   Future<bool> connectTarget(int handle, {int durationMs = 5000}) async {
+    if (_activeOperation != null) {
+      throw OperationInProgressException(_activeOperation!);
+    }
+
     if (_canHandle == null) {
       throw Exception("CAN interface not registered");
     }
 
-    final asyncStatus = TTCTK.instance.asyncConnect(handle, durationMs);
-    if (asyncStatus != 0) {
-      throw Exception("Async connect failed immediately. Status: $asyncStatus");
-    }
+    _activeOperation = 'Connect';
+    notifyListeners();
 
-    // This is a blocking call in the C library. Use Isolate.run to avoid freezing the UI.
-    final connectStatus = await Isolate.run(() {
-      return TTCTK.instance.awaitConnect();
-    });
+    try {
+      final asyncStatus = TTCTK.instance.asyncConnect(handle, durationMs);
+      if (asyncStatus != 0) {
+        throw Exception("Async connect failed immediately. Status: $asyncStatus");
+      }
 
-    if (connectStatus == 0) {
-      return true;
-    } else {
-      throw Exception("Await connect returned with error: $connectStatus");
+      // This is a blocking call in the C library. Use Isolate.run to avoid freezing the UI.
+      final connectStatus = await Isolate.run(() {
+        return TTCTK.instance.awaitConnect();
+      });
+
+      if (connectStatus == 0) {
+        return true;
+      } else {
+        throw Exception("Await connect returned with error: $connectStatus");
+      }
+    } finally {
+      _activeOperation = null;
+      notifyListeners();
     }
   }
 
@@ -99,40 +132,52 @@ class ToolkitService with ChangeNotifier {
   /// Returns an updated [EcuProfile] with hardware info, versions, etc.
   /// Runs in an isolate to avoid blocking the UI.
   Future<EcuProfile> readTargetInfo(Target target) async {
-    _log.debug("Reading target info...");
-
-    final handle = target.targetHandle;
-    final updates = await compute(_readTargetInfoIsolate, handle);
-
-    if (updates.isEmpty) {
-      _log.error("Failed to read target info - no data received");
-      return target.profile ?? EcuProfile(name: "Unknown", txId: target.ta, rxId: target.sa);
+    if (_activeOperation != null) {
+      throw OperationInProgressException(_activeOperation!);
     }
 
-    final hwType = updates['hwType'] ?? '';
-    final mappedName = EcuHardwareMap.getEcuName(hwType);
+    _activeOperation = 'Read Target Info';
+    notifyListeners();
 
-    final currentProfile = target.profile ?? EcuProfile(name: "Unknown", txId: target.ta, rxId: target.sa);
+    try {
+      _log.debug("Reading target info...");
 
-    final updatedProfile = currentProfile.copyWith(
-      name: mappedName ?? currentProfile.name,
-      serialNumber: updates['serial'],
-      hardwareName: updates['hwName'],
-      hardwareType: hwType,
-      bootloaderVersion: updates['bootVer'],
-      bootloaderBuildDate: updates['bootDate'],
-      appVersion: updates['appVer'],
-      appBuildDate: updates['appDate'],
-      hsmVersion: updates['hsmVer'],
-      hsmBuildDate: updates['hsmDate'],
-      productionCode: updates['productionCode'],
-    );
+      final handle = target.targetHandle;
+      final updates = await compute(_readTargetInfoIsolate, handle);
 
-    // Update the target's profile reference
-    target.profile = updatedProfile;
+      if (updates.isEmpty) {
+        _log.error("Failed to read target info - no data received");
+        return target.profile ?? EcuProfile(name: "Unknown", txId: target.ta, rxId: target.sa);
+      }
 
-    _log.info("Target info read successfully");
-    return updatedProfile;
+      final hwType = updates['hwType'] ?? '';
+      final mappedName = EcuHardwareMap.getEcuName(hwType);
+
+      final currentProfile = target.profile ?? EcuProfile(name: "Unknown", txId: target.ta, rxId: target.sa);
+
+      final updatedProfile = currentProfile.copyWith(
+        name: mappedName ?? currentProfile.name,
+        serialNumber: updates['serial'],
+        hardwareName: updates['hwName'],
+        hardwareType: hwType,
+        bootloaderVersion: updates['bootVer'],
+        bootloaderBuildDate: updates['bootDate'],
+        appVersion: updates['appVer'],
+        appBuildDate: updates['appDate'],
+        hsmVersion: updates['hsmVer'],
+        hsmBuildDate: updates['hsmDate'],
+        productionCode: updates['productionCode'],
+      );
+
+      // Update the target's profile reference
+      target.profile = updatedProfile;
+
+      _log.info("Target info read successfully");
+      return updatedProfile;
+    } finally {
+      _activeOperation = null;
+      notifyListeners();
+    }
   }
 
   // ============================================================
@@ -144,12 +189,24 @@ class ToolkitService with ChangeNotifier {
   /// Uses memId=0. Runs in an isolate to avoid blocking the UI.
   /// Returns 0 on success, non-zero error code on failure.
   Future<int> downloadHexFile(int targetHandle, String filePath) async {
-    final result = await Isolate.run(() {
-      // TODO: we could automatically determine the memid from the hex file and hardware model used
-      return TTCTK.instance.writeFromFile(targetHandle, 0, filePath);
-    });
+    if (_activeOperation != null) {
+      throw OperationInProgressException(_activeOperation!);
+    }
 
-    return result;
+    _activeOperation = 'Download';
+    notifyListeners();
+
+    try {
+      final result = await Isolate.run(() {
+        // TODO: we could automatically determine the memid from the hex file and hardware model used
+        return TTCTK.instance.writeFromFile(targetHandle, 0, filePath);
+      });
+
+      return result;
+    } finally {
+      _activeOperation = null;
+      notifyListeners();
+    }
   }
 
   // ============================================================
@@ -267,6 +324,26 @@ class ToolkitService with ChangeNotifier {
   /// Resets the security set state.
   void resetSecurityState() {
     _isSecuritySet = false;
+    notifyListeners();
+  }
+
+  // ============================================================
+  // Session Persistence (File Paths)
+  // ============================================================
+
+  String? _downloadFilePath;
+  String? get downloadFilePath => _downloadFilePath;
+
+  void setDownloadFilePath(String? path) {
+    _downloadFilePath = path;
+    notifyListeners();
+  }
+
+  String? _uploadSaveFilePath;
+  String? get uploadSaveFilePath => _uploadSaveFilePath;
+
+  void setUploadSaveFilePath(String? path) {
+    _uploadSaveFilePath = path;
     notifyListeners();
   }
 }

@@ -111,9 +111,30 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       if (validTarget) {
         TargetManager().setActiveTarget(target);
       }
+    } on OperationInProgressException catch (e) {
+      _showErrorSnackBar('Cannot connect: ${e.operationName} is in progress.');
     } catch (e) {
       LogService().error("Connection to target SA=$saHex, TA=$taHex failed: $e");
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    LogService().warning(message);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _connectMockTarget() {
@@ -394,74 +415,74 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       child: SingleChildScrollView(
         controller: _directTabScrollController,
         padding: const EdgeInsets.all(12.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                final sa = int.tryParse(_saController.text, radix: 16) ?? 0xF1;
-                final ta = int.tryParse(_taController.text, radix: 16) ?? 0x08;
-                _connectTarget(sa, ta);
-              },
-              child: const Text("Connect"),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(onPressed: _connectMockTarget, icon: const Icon(Icons.bug_report, size: 18), label: const Text("Connect Mock Target")),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _saController,
-            decoration: const InputDecoration(
-              labelText: "Source Address (SA) (Hex)",
-              prefixText: "0x",
-              border: OutlineInputBorder(),
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            style: const TextStyle(fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _taController,
-            decoration: const InputDecoration(
-              labelText: "Target Address (TA) (Hex)",
-              prefixText: "0x",
-              border: OutlineInputBorder(),
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            style: const TextStyle(fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Connection Timeout: ${(_connectionTimeout.toInt() == 0) ? "Indefinite" : "${_connectionTimeout.toInt()} ms"}",
-                style: const TextStyle(fontSize: 13),
-              ),
-              Slider(
-                value: _connectionTimeout,
-                min: 0,
-                max: 10000,
-                divisions: 100,
-                label: (_connectionTimeout.toInt() == 0) ? "Indefinite" : "${_connectionTimeout.toInt()} ms",
-                onChanged: (value) {
-                  setState(() {
-                    _connectionTimeout = value;
-                  });
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  final sa = int.tryParse(_saController.text, radix: 16) ?? 0xF1;
+                  final ta = int.tryParse(_taController.text, radix: 16) ?? 0x08;
+                  _connectTarget(sa, ta);
                 },
+                child: const Text("Connect"),
               ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(onPressed: _connectMockTarget, icon: const Icon(Icons.bug_report, size: 18), label: const Text("Connect Mock Target")),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _saController,
+              decoration: const InputDecoration(
+                labelText: "Source Address (SA) (Hex)",
+                prefixText: "0x",
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _taController,
+              decoration: const InputDecoration(
+                labelText: "Target Address (TA) (Hex)",
+                prefixText: "0x",
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Connection Timeout: ${(_connectionTimeout.toInt() == 0) ? "Indefinite" : "${_connectionTimeout.toInt()} ms"}",
+                  style: const TextStyle(fontSize: 13),
+                ),
+                Slider(
+                  value: _connectionTimeout,
+                  min: 0,
+                  max: 10000,
+                  divisions: 100,
+                  label: (_connectionTimeout.toInt() == 0) ? "Indefinite" : "${_connectionTimeout.toInt()} ms",
+                  onChanged: (value) {
+                    setState(() {
+                      _connectionTimeout = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 }

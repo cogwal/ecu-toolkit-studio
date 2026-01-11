@@ -16,13 +16,12 @@ class DownloadTab extends StatefulWidget {
 class _DownloadTabState extends State<DownloadTab> {
   final LogService _log = LogService();
 
-  String? _downloadFilePath;
   bool _isDownloading = false;
 
   Future<void> _pickHexFile() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['hex', 'HEX'], dialogTitle: 'Select HEX File');
     if (result != null && result.files.single.path != null) {
-      setState(() => _downloadFilePath = result.files.single.path!);
+      setState(() => ToolkitService().setDownloadFilePath(result.files.single.path!));
     }
   }
 
@@ -33,7 +32,7 @@ class _DownloadTabState extends State<DownloadTab> {
       return;
     }
 
-    if (_downloadFilePath == null) {
+    if (ToolkitService().downloadFilePath == null) {
       _log.error('No HEX file selected');
       return;
     }
@@ -53,14 +52,16 @@ class _DownloadTabState extends State<DownloadTab> {
     setState(() => _isDownloading = true);
 
     try {
-      _log.info('Starting download: $_downloadFilePath');
-      final result = await ToolkitService().downloadHexFile(target.targetHandle, _downloadFilePath!);
+      _log.info('Starting download: ${ToolkitService().downloadFilePath}');
+      final result = await ToolkitService().downloadHexFile(target.targetHandle, ToolkitService().downloadFilePath!);
 
       if (result == 0) {
         _log.info('Download completed successfully');
       } else {
         _log.error('Download failed with error code: $result');
       }
+    } on OperationInProgressException catch (e) {
+      _showErrorSnackBar('Cannot start download: ${e.operationName} is in progress.');
     } catch (e) {
       _log.error('Download failed: $e');
     } finally {
@@ -71,7 +72,9 @@ class _DownloadTabState extends State<DownloadTab> {
   }
 
   void _showErrorSnackBar(String message) {
+    _log.warning(message);
     if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -95,7 +98,7 @@ class _DownloadTabState extends State<DownloadTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FlashFileSelector(label: 'HEX File', value: _downloadFilePath, onBrowse: _pickHexFile),
+          FlashFileSelector(label: 'HEX File', value: ToolkitService().downloadFilePath, onBrowse: _pickHexFile),
           const SizedBox(height: 16),
           const FlashInfoBox(
             text: 'Select a HEX file to download to the target. The memory addresses are determined by the file contents.',
@@ -119,7 +122,7 @@ class _DownloadTabState extends State<DownloadTab> {
           FlashActionButton(
             label: _isDownloading ? 'Downloading...' : 'Download',
             icon: Icons.download,
-            onPressed: (!_isDownloading && _downloadFilePath != null) ? _performDownload : null,
+            onPressed: (!_isDownloading && ToolkitService().downloadFilePath != null) ? _performDownload : null,
           ),
         ],
       ),

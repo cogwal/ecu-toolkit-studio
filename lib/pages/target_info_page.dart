@@ -65,6 +65,8 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
       if (mounted && _activeTarget == target) {
         setState(() => _profile = updatedProfile);
       }
+    } on OperationInProgressException catch (e) {
+      _showErrorSnackBar('Cannot read target info: ${e.operationName} is in progress.');
     } catch (e) {
       LogService().error("Failed to read target info: $e");
     } finally {
@@ -72,6 +74,25 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
         setState(() => _isReading = false);
       }
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    LogService().warning(message);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
