@@ -51,14 +51,22 @@ class _SecurityTabState extends State<SecurityTab> {
 
     bool success = true;
 
-    if (key1 != null) {
-      final res = await _toolkit.setSecurityParameters(_activeTarget!.targetHandle, TK_TARGET_UDS_SECURITY_LEVEL_1, key1);
-      if (res != 0) success = false;
-    }
+    try {
+      if (key1 != null) {
+        final res = await _toolkit.setSecurityParameters(_activeTarget!.targetHandle, TK_TARGET_UDS_SECURITY_LEVEL_1, key1);
+        if (res != 0) success = false;
+      }
 
-    if (key2 != null) {
-      final res = await _toolkit.setSecurityParameters(_activeTarget!.targetHandle, TK_TARGET_UDS_SECURITY_LEVEL_2, key2);
-      if (res != 0) success = false;
+      if (key2 != null) {
+        final res = await _toolkit.setSecurityParameters(_activeTarget!.targetHandle, TK_TARGET_UDS_SECURITY_LEVEL_2, key2);
+        if (res != 0) success = false;
+      }
+    } on OperationInProgressException catch (e) {
+      _showErrorSnackBar('Cannot set security: ${e.operationName} is in progress.');
+      return;
+    } catch (e) {
+      _log.error('Failed to set security: $e');
+      return;
     }
 
     if (success) {
@@ -68,7 +76,26 @@ class _SecurityTabState extends State<SecurityTab> {
     }
 
     // Trigger rebuild to update any UI states if necessary
-    setState(() {});
+    if (mounted) setState(() {});
+  }
+
+  void _showErrorSnackBar(String message) {
+    _log.warning(message);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override

@@ -43,9 +43,34 @@ class FdrTabState extends State<FdrTab> {
       return;
     }
 
-    await _toolkit.loadFdr(_activeTarget!.targetHandle, _fdrFilePath!);
+    try {
+      await _toolkit.loadFdr(_activeTarget!.targetHandle, _fdrFilePath!);
+    } on OperationInProgressException catch (e) {
+      _showErrorSnackBar('Cannot load FDR: ${e.operationName} is in progress.');
+    } catch (e) {
+      _log.error('Failed to load FDR: $e');
+    }
     // Trigger rebuild to update status indicator
-    setState(() {});
+    if (mounted) setState(() {});
+  }
+
+  void _showErrorSnackBar(String message) {
+    _log.warning(message);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override

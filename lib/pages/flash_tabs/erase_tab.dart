@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/target.dart';
 import '../../models/hardware_models.dart';
 import '../../services/log_service.dart';
+import '../../services/toolkit_service.dart';
 import '../../services/target_manager_service.dart';
 import 'flash_tab_components.dart';
 
@@ -18,6 +19,7 @@ class _EraseTabState extends State<EraseTab> {
 
   int? _eraseSelectedIndex;
   bool _eraseUseCustomRange = false;
+  bool _isErasing = false;
   final TextEditingController _eraseStartController = TextEditingController(text: '0x00000000');
   final TextEditingController _eraseSizeController = TextEditingController(text: '0x1000');
 
@@ -35,19 +37,87 @@ class _EraseTabState extends State<EraseTab> {
     super.dispose();
   }
 
-  void _performErase() {
+  Future<void> _performErase() async {
+    final target = _activeTarget;
+    if (target == null) {
+      _log.error('No active target connected');
+      return;
+    }
+
+    // Validation: FDR must be loaded
+    if (!ToolkitService().isFdrLoaded) {
+      _showErrorSnackBar('FDR must be loaded before erasing.');
+      return;
+    }
+
+    // Validation: Security must be set
+    if (!ToolkitService().isSecuritySet) {
+      _showErrorSnackBar('Security keys must be set before erasing.');
+      return;
+    }
+
+    int startAddress;
+    int size;
+    int memId;
+
     if (_eraseUseCustomRange) {
       final start = CustomMemoryRange.parseHex(_eraseStartController.text);
-      final size = CustomMemoryRange.parseHex(_eraseSizeController.text);
-      if (start == null || size == null) {
+      final sz = CustomMemoryRange.parseHex(_eraseSizeController.text);
+      if (start == null || sz == null) {
         _log.error('Invalid custom range values');
         return;
       }
-      _log.info('Erasing custom range: 0x${start.toRadixString(16)} size 0x${size.toRadixString(16)} (not implemented)');
+      startAddress = start;
+      size = sz;
+      memId = 0; // Default memId for custom range
     } else if (_eraseSelectedIndex != null) {
       final region = _memoryRegions[_eraseSelectedIndex!];
-      _log.info('Erasing region: ${region.name} (not implemented)');
+      startAddress = region.startAddress;
+      size = region.size;
+      memId = region.id;
+    } else {
+      return;
     }
+
+    setState(() => _isErasing = true);
+
+    try {
+      _log.info('Erasing memory: 0x${startAddress.toRadixString(16)} size 0x${size.toRadixString(16)} memId=$memId');
+      final result = await ToolkitService().eraseMemoryRange(target.targetHandle, startAddress, size, memId);
+
+      if (result == 0) {
+        _log.info('Erase completed successfully');
+      } else {
+        _log.error('Erase failed with error code: $result');
+      }
+    } on OperationInProgressException catch (e) {
+      _showErrorSnackBar('Cannot start erase: ${e.operationName} is in progress.');
+    } catch (e) {
+      _log.error('Erase failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isErasing = false);
+      }
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    _log.warning(message);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -83,11 +153,25 @@ class _EraseTabState extends State<EraseTab> {
           const SizedBox(height: 8),
           const FlashWarningBox(text: 'Erasing is irreversible. Double-check your selection.'),
           const SizedBox(height: 16),
+          if (_isErasing)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 16),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                    SizedBox(width: 12),
+                    Text('Erasing...'),
+                  ],
+                ),
+              ),
+            ),
           FlashActionButton(
-            label: 'Erase',
+            label: _isErasing ? 'Erasing...' : 'Erase',
             icon: Icons.delete_forever,
             isDestructive: true,
-            onPressed: (_eraseSelectedIndex != null || _eraseUseCustomRange) ? _performErase : null,
+            onPressed: (!_isErasing && (_eraseSelectedIndex != null || _eraseUseCustomRange)) ? _performErase : null,
           ),
         ],
       ),

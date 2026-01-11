@@ -172,6 +172,8 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
         _canStatus = "Registered (Handle: $_canHandle)";
       });
       LogService().info("CAN interface registered successfully");
+    } on OperationInProgressException catch (e) {
+      _showErrorSnackBar('Cannot register CAN: ${e.operationName} is in progress.');
     } catch (e) {
       setState(() {
         _canStatus = "Error: $e";
@@ -188,6 +190,8 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
         _canStatus = "Not registered";
       });
       LogService().info("CAN interface deregistered");
+    } on OperationInProgressException catch (e) {
+      _showErrorSnackBar('Cannot deregister CAN: ${e.operationName} is in progress.');
     } catch (e) {
       LogService().error("$e");
     }

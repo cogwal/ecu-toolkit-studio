@@ -54,6 +54,10 @@ class ToolkitService with ChangeNotifier {
   /// Registers the CAN interface with default settings (PEAK USB 1, 500k).
   /// Returns the handle on success. Throws exception on failure.
   Future<int> registerCanInterface() async {
+    if (_activeOperation != null) {
+      throw OperationInProgressException(_activeOperation!);
+    }
+
     final canInterface = calloc<TkCanInterfaceType>();
     final handlePtr = calloc<ffi.Uint32>();
 
@@ -77,6 +81,10 @@ class ToolkitService with ChangeNotifier {
 
   /// Deregisters the current CAN interface.
   Future<void> deregisterCanInterface() async {
+    if (_activeOperation != null) {
+      throw OperationInProgressException(_activeOperation!);
+    }
+
     if (_canHandle == null) return;
 
     final status = TTCTK.instance.deRegisterCanInterface(_canHandle!);
@@ -210,6 +218,35 @@ class ToolkitService with ChangeNotifier {
   }
 
   // ============================================================
+  // Flash Erase
+  // ============================================================
+
+  /// Erases a memory range on the target ECU.
+  ///
+  /// Uses the specified memId, start address, and size.
+  /// Runs in an isolate to avoid blocking the UI.
+  /// Returns 0 on success, non-zero error code on failure.
+  Future<int> eraseMemoryRange(int targetHandle, int startAddress, int size, int memId) async {
+    if (_activeOperation != null) {
+      throw OperationInProgressException(_activeOperation!);
+    }
+
+    _activeOperation = 'Erase';
+    notifyListeners();
+
+    try {
+      final result = await Isolate.run(() {
+        return TTCTK.instance.eraseRange(targetHandle, startAddress, size, memId);
+      });
+
+      return result;
+    } finally {
+      _activeOperation = null;
+      notifyListeners();
+    }
+  }
+
+  // ============================================================
   // FDR (Flash Driver Routines) Management
   // ============================================================
 
@@ -223,6 +260,10 @@ class ToolkitService with ChangeNotifier {
   /// Returns 0 on success, non-zero error code on failure.
   /// The FDR loaded state persists throughout the application lifetime.
   Future<int> loadFdr(int targetHandle, String filePath) async {
+    if (_activeOperation != null) {
+      throw OperationInProgressException(_activeOperation!);
+    }
+
     _log.info('Loading FDR from: $filePath');
 
     final result = TTCTK.instance.setProgrammingRoutines(targetHandle, filePath);
@@ -258,6 +299,10 @@ class ToolkitService with ChangeNotifier {
   /// [key] is the secret key as a list of integers.
   /// Returns 0 on success, non-zero error code on failure.
   Future<int> setSecurityParameters(int targetHandle, int level, List<int> key) async {
+    if (_activeOperation != null) {
+      throw OperationInProgressException(_activeOperation!);
+    }
+
     _log.info('Applying security level $level key...');
 
     final params = calloc<TkTargetSecurityParametersType>();
