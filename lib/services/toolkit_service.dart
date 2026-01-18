@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
@@ -247,6 +248,51 @@ class ToolkitService with ChangeNotifier {
   }
 
   // ============================================================
+  // Flash Upload (Read Memory)
+  // ============================================================
+
+  /// Reads a memory range from the target ECU and saves it to a file.
+  ///
+  /// Uses the specified memId, start address, and size.
+  /// Runs in an isolate to avoid blocking the UI.
+  /// Returns 0 on success, non-zero error code on failure.
+  Future<int> readMemoryToFile(int targetHandle, int startAddress, int size, int memId, String filePath) async {
+    if (_activeOperation != null) {
+      throw OperationInProgressException(_activeOperation!);
+    }
+
+    _activeOperation = 'Upload';
+    notifyListeners();
+
+    try {
+      final data = await Isolate.run(() {
+        return TTCTK.instance.readToMemoryBufferAsList(targetHandle, startAddress, size, memId);
+      });
+
+      if (data == null) {
+        _log.error('Failed to read memory from target');
+        return -1;
+      }
+
+      if (data.length != size) {
+        _log.warning('Read data size mismatch. Expected: $size, Got: ${data.length}');
+      }
+
+      _log.info('Writing ${data.length} bytes to $filePath');
+      await File(filePath).writeAsBytes(data);
+      _log.info('File saved successfully');
+
+      return 0;
+    } catch (e) {
+      _log.error('Exception during upload: $e');
+      return -1;
+    } finally {
+      _activeOperation = null;
+      notifyListeners();
+    }
+  }
+
+  // ============================================================
   // FDR (Flash Driver Routines) Management
   // ============================================================
 
@@ -283,6 +329,7 @@ class ToolkitService with ChangeNotifier {
   /// Resets the FDR loaded state.
   void resetFdrState() {
     _fdrLoaded = false;
+    notifyListeners();
   }
   // ============================================================
   // Security Parameters Management

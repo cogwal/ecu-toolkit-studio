@@ -62,7 +62,7 @@ class _SecurityTabState extends State<SecurityTab> {
         if (res != 0) success = false;
       }
     } on OperationInProgressException catch (e) {
-      _showErrorSnackBar('Cannot set security: ${e.operationName} is in progress.');
+      if (mounted) showFlashErrorSnackBar(context, 'Cannot set security: ${e.operationName} is in progress.');
       return;
     } catch (e) {
       _log.error('Failed to set security: $e');
@@ -77,25 +77,6 @@ class _SecurityTabState extends State<SecurityTab> {
 
     // Trigger rebuild to update any UI states if necessary
     if (mounted) setState(() {});
-  }
-
-  void _showErrorSnackBar(String message) {
-    _log.warning(message);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override

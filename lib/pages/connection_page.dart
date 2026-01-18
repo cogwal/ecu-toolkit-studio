@@ -21,7 +21,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   final TextEditingController _saController = TextEditingController(text: "F1");
   final TextEditingController _taController = TextEditingController(text: "08");
   final ScrollController _directTabScrollController = ScrollController();
-  double _connectionTimeout = 5000;
+  double _connectionTimeout = 10000;
 
   // CAN interface handle
   int? _canHandle;
@@ -473,7 +473,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
                 Slider(
                   value: _connectionTimeout,
                   min: 0,
-                  max: 10000,
+                  max: 20000,
                   divisions: 100,
                   label: (_connectionTimeout.toInt() == 0) ? "Indefinite" : "${_connectionTimeout.toInt()} ms",
                   onChanged: (value) {

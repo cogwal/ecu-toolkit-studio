@@ -46,13 +46,13 @@ class _EraseTabState extends State<EraseTab> {
 
     // Validation: FDR must be loaded
     if (!ToolkitService().isFdrLoaded) {
-      _showErrorSnackBar('FDR must be loaded before erasing.');
+      if (mounted) showFlashErrorSnackBar(context, 'FDR must be loaded before erasing.');
       return;
     }
 
     // Validation: Security must be set
     if (!ToolkitService().isSecuritySet) {
-      _showErrorSnackBar('Security keys must be set before erasing.');
+      if (mounted) showFlashErrorSnackBar(context, 'Security keys must be set before erasing.');
       return;
     }
 
@@ -91,7 +91,7 @@ class _EraseTabState extends State<EraseTab> {
         _log.error('Erase failed with error code: $result');
       }
     } on OperationInProgressException catch (e) {
-      _showErrorSnackBar('Cannot start erase: ${e.operationName} is in progress.');
+      if (mounted) showFlashErrorSnackBar(context, 'Cannot start erase: ${e.operationName} is in progress.');
     } catch (e) {
       _log.error('Erase failed: $e');
     } finally {
@@ -99,25 +99,6 @@ class _EraseTabState extends State<EraseTab> {
         setState(() => _isErasing = false);
       }
     }
-  }
-
-  void _showErrorSnackBar(String message) {
-    _log.warning(message);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override

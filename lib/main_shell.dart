@@ -8,6 +8,7 @@ import 'pages/settings_page.dart';
 import 'services/log_service.dart';
 import 'widgets/log_panel.dart';
 import 'services/target_manager_service.dart';
+import 'services/toolkit_service.dart';
 
 class MainShell extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -88,6 +89,8 @@ class _MainShellState extends State<MainShell> {
     if (t != null) {
       TargetManager().removeTarget(t);
     }
+    ToolkitService().resetFdrState();
+    ToolkitService().resetSecurityState();
   }
 
   // --- Navigation Logic ---
