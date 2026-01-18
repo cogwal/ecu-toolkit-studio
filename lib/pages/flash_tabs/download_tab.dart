@@ -60,6 +60,8 @@ class _DownloadTabState extends State<DownloadTab> {
       } else {
         _log.error('Download failed with error code: $result');
       }
+
+      ToolkitService().disconnectAfterOperation(target);
     } on OperationInProgressException catch (e) {
       if (mounted) showFlashErrorSnackBar(context, 'Cannot start download: ${e.operationName} is in progress.');
     } catch (e) {

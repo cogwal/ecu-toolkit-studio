@@ -10,6 +10,7 @@ import '../models/target.dart';
 import '../models/ecu_profile.dart';
 import '../models/hardware_models.dart';
 import 'log_service.dart';
+import 'target_manager_service.dart';
 
 /// Exception thrown when an operation is attempted while another is in progress.
 class OperationInProgressException implements Exception {
@@ -437,6 +438,20 @@ class ToolkitService with ChangeNotifier {
   void setUploadSaveFilePath(String? path) {
     _uploadSaveFilePath = path;
     notifyListeners();
+  }
+
+  // ============================================================
+  // Post-Operation disconnect
+  // ============================================================
+
+  /// Disconnects from the target after a flash operation.
+  ///
+  /// This is needed because flash operations (erase, flashing app) reset the ECU,
+  /// requiring a fresh connection and re-reading of target info.
+  void disconnectAfterOperation(Target target) {
+    TargetManager().removeTarget(target);
+    resetFdrState();
+    resetSecurityState();
   }
 }
 

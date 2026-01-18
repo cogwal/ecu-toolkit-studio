@@ -90,6 +90,8 @@ class _EraseTabState extends State<EraseTab> {
       } else {
         _log.error('Erase failed with error code: $result');
       }
+
+      ToolkitService().disconnectAfterOperation(target);
     } on OperationInProgressException catch (e) {
       if (mounted) showFlashErrorSnackBar(context, 'Cannot start erase: ${e.operationName} is in progress.');
     } catch (e) {

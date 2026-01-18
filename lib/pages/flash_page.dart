@@ -25,7 +25,7 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
   final ToolkitService _toolkit = ToolkitService();
 
   String get _hardwareType {
-    return _activeTarget?.profile?.hardwareType ?? 'Unknown';
+    return _activeTarget?.profile?.name ?? 'Unknown';
   }
 
   @override
@@ -79,7 +79,7 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text('Flash Operations', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text('HW: $_hardwareType', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                    Text('Connected to: $_hardwareType', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
                   ],
                 ),
                 const SizedBox(width: 16),

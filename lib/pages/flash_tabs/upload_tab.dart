@@ -115,6 +115,8 @@ class _UploadTabState extends State<UploadTab> {
       } else {
         _log.error('Upload failed with error code: $result');
       }
+
+      ToolkitService().disconnectAfterOperation(target);
     } on OperationInProgressException catch (e) {
       if (mounted) showFlashErrorSnackBar(context, 'Cannot start upload: ${e.operationName} is in progress.');
     } catch (e) {
