@@ -79,9 +79,12 @@ class TargetManager {
       setActiveTarget(newActiveTarget);
     }
 
-    final status = TTCTK.instance.removeTarget(target.targetHandle);
-    if (status != 0) {
-      throw Exception("Failed to remove target from TTC toolkit: $status");
+    // Skip TTCTK call for mock targets (targetHandle == 0)
+    if (target.targetHandle != 0) {
+      final status = TTCTK.instance.removeTarget(target.targetHandle);
+      if (status != 0) {
+        throw Exception("Failed to remove target from TTC toolkit: $status");
+      }
     }
 
     _targets.remove(target);

@@ -19,7 +19,6 @@ class _EraseTabState extends State<EraseTab> {
 
   int? _eraseSelectedIndex;
   bool _eraseUseCustomRange = false;
-  bool _isErasing = false;
   final TextEditingController _eraseStartController = TextEditingController(text: '0x00000000');
   final TextEditingController _eraseSizeController = TextEditingController(text: '0x1000');
 
@@ -79,8 +78,6 @@ class _EraseTabState extends State<EraseTab> {
       return;
     }
 
-    setState(() => _isErasing = true);
-
     try {
       _log.info('Erasing memory: 0x${startAddress.toRadixString(16)} size 0x${size.toRadixString(16)} memId=$memId');
       final result = await ToolkitService().eraseMemoryRange(target.targetHandle, startAddress, size, memId);
@@ -96,10 +93,6 @@ class _EraseTabState extends State<EraseTab> {
       if (mounted) showFlashErrorSnackBar(context, 'Cannot start erase: ${e.operationName} is in progress.');
     } catch (e) {
       _log.error('Erase failed: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isErasing = false);
-      }
     }
   }
 
@@ -108,55 +101,47 @@ class _EraseTabState extends State<EraseTab> {
     return FlashTabContainer(
       icon: Icons.delete_forever,
       title: 'Erase Memory',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Select region to erase:', style: TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              child: FlashRegionSelector(
-                memoryRegions: _memoryRegions,
-                selectedIndex: _eraseUseCustomRange ? -1 : _eraseSelectedIndex,
-                onChanged: (index) => setState(() {
-                  _eraseSelectedIndex = index;
-                  _eraseUseCustomRange = false;
-                }),
-                showCustom: true,
-                customSelected: _eraseUseCustomRange,
-                onCustomSelected: () => setState(() {
-                  _eraseUseCustomRange = true;
-                  _eraseSelectedIndex = null;
-                }),
-                customStartController: _eraseStartController,
-                customSizeController: _eraseSizeController,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const FlashWarningBox(text: 'Erasing is irreversible. Double-check your selection.'),
-          const SizedBox(height: 16),
-          if (_isErasing)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 16),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                    SizedBox(width: 12),
-                    Text('Erasing...'),
-                  ],
+      child: ListenableBuilder(
+        listenable: ToolkitService(),
+        builder: (context, _) {
+          final isOperationPending = ToolkitService().isOperationPending;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Select region to erase:', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: FlashRegionSelector(
+                    memoryRegions: _memoryRegions,
+                    selectedIndex: _eraseUseCustomRange ? -1 : _eraseSelectedIndex,
+                    onChanged: (index) => setState(() {
+                      _eraseSelectedIndex = index;
+                      _eraseUseCustomRange = false;
+                    }),
+                    showCustom: true,
+                    customSelected: _eraseUseCustomRange,
+                    onCustomSelected: () => setState(() {
+                      _eraseUseCustomRange = true;
+                      _eraseSelectedIndex = null;
+                    }),
+                    customStartController: _eraseStartController,
+                    customSizeController: _eraseSizeController,
+                  ),
                 ),
               ),
-            ),
-          FlashActionButton(
-            label: _isErasing ? 'Erasing...' : 'Erase',
-            icon: Icons.delete_forever,
-            isDestructive: true,
-            onPressed: (!_isErasing && (_eraseSelectedIndex != null || _eraseUseCustomRange)) ? _performErase : null,
-          ),
-        ],
+              const SizedBox(height: 8),
+              const FlashWarningBox(text: 'Erasing is irreversible. Double-check your selection.'),
+              const SizedBox(height: 16),
+              FlashActionButton(
+                label: isOperationPending ? '${ToolkitService().activeOperationName}...' : 'Erase',
+                icon: Icons.delete_forever,
+                isDestructive: true,
+                onPressed: (!isOperationPending && (_eraseSelectedIndex != null || _eraseUseCustomRange)) ? _performErase : null,
+              ),
+            ],
+          );
+        },
       ),
     );
   }

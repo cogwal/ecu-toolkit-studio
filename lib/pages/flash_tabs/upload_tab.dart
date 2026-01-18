@@ -21,7 +21,6 @@ class _UploadTabState extends State<UploadTab> {
 
   int? _uploadSelectedIndex;
   bool _uploadUseCustomRange = false;
-  bool _isUploading = false;
   final TextEditingController _uploadStartController = TextEditingController(text: '0x00000000');
   final TextEditingController _uploadSizeController = TextEditingController(text: '0x1000');
 
@@ -102,8 +101,6 @@ class _UploadTabState extends State<UploadTab> {
       return;
     }
 
-    setState(() => _isUploading = true);
-
     try {
       _log.info('Reading memory: 0x${startAddress.toRadixString(16)} size 0x${size.toRadixString(16)} memId=$memId');
       _log.info('Saving to: ${ToolkitService().uploadSaveFilePath}');
@@ -121,10 +118,6 @@ class _UploadTabState extends State<UploadTab> {
       if (mounted) showFlashErrorSnackBar(context, 'Cannot start upload: ${e.operationName} is in progress.');
     } catch (e) {
       _log.error('Upload failed: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isUploading = false);
-      }
     }
   }
 
@@ -133,60 +126,52 @@ class _UploadTabState extends State<UploadTab> {
     return FlashTabContainer(
       icon: Icons.upload,
       title: 'Upload (Read Memory)',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Select region to upload:', style: TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              child: FlashRegionSelector(
-                memoryRegions: _memoryRegions,
-                selectedIndex: _uploadUseCustomRange ? -1 : _uploadSelectedIndex,
-                onChanged: (index) => setState(() {
-                  _uploadSelectedIndex = index;
-                  _uploadUseCustomRange = false;
-                  // Clear save path when changing selection as filename might change
-                  ToolkitService().setUploadSaveFilePath(null);
-                }),
-                showCustom: true,
-                customSelected: _uploadUseCustomRange,
-                onCustomSelected: () => setState(() {
-                  _uploadUseCustomRange = true;
-                  _uploadSelectedIndex = null;
-                  // Clear save path when changing selection
-                  ToolkitService().setUploadSaveFilePath(null);
-                }),
-                customStartController: _uploadStartController,
-                customSizeController: _uploadSizeController,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          FlashFileSelector(label: 'Save to', value: ToolkitService().uploadSaveFilePath, onBrowse: _pickSaveLocation, isSave: true),
-          const SizedBox(height: 16),
-          if (_isUploading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 16),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                    SizedBox(width: 12),
-                    Text('Uploading (Reading)...'),
-                  ],
+      child: ListenableBuilder(
+        listenable: ToolkitService(),
+        builder: (context, _) {
+          final isOperationPending = ToolkitService().isOperationPending;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Select region to upload:', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: FlashRegionSelector(
+                    memoryRegions: _memoryRegions,
+                    selectedIndex: _uploadUseCustomRange ? -1 : _uploadSelectedIndex,
+                    onChanged: (index) => setState(() {
+                      _uploadSelectedIndex = index;
+                      _uploadUseCustomRange = false;
+                      // Clear save path when changing selection as filename might change
+                      ToolkitService().setUploadSaveFilePath(null);
+                    }),
+                    showCustom: true,
+                    customSelected: _uploadUseCustomRange,
+                    onCustomSelected: () => setState(() {
+                      _uploadUseCustomRange = true;
+                      _uploadSelectedIndex = null;
+                      // Clear save path when changing selection
+                      ToolkitService().setUploadSaveFilePath(null);
+                    }),
+                    customStartController: _uploadStartController,
+                    customSizeController: _uploadSizeController,
+                  ),
                 ),
               ),
-            ),
-          FlashActionButton(
-            label: _isUploading ? 'Uploading...' : 'Upload',
-            icon: Icons.upload,
-            onPressed: (!_isUploading && (_uploadSelectedIndex != null || _uploadUseCustomRange) && ToolkitService().uploadSaveFilePath != null)
-                ? _performUpload
-                : null,
-          ),
-        ],
+              const SizedBox(height: 16),
+              FlashFileSelector(label: 'Save to', value: ToolkitService().uploadSaveFilePath, onBrowse: _pickSaveLocation, isSave: true),
+              const SizedBox(height: 16),
+              FlashActionButton(
+                label: isOperationPending ? '${ToolkitService().activeOperationName}...' : 'Upload',
+                icon: Icons.upload,
+                onPressed: (!isOperationPending && (_uploadSelectedIndex != null || _uploadUseCustomRange) && ToolkitService().uploadSaveFilePath != null)
+                    ? _performUpload
+                    : null,
+              ),
+            ],
+          );
+        },
       ),
     );
   }

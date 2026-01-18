@@ -3,11 +3,10 @@ import 'dart:async';
 import '../models/target.dart';
 import '../services/target_manager_service.dart';
 import '../services/toolkit_service.dart';
-import 'flash_tabs/fdr_tab.dart';
-import 'flash_tabs/security_tab.dart';
 import 'flash_tabs/download_tab.dart';
 import 'flash_tabs/erase_tab.dart';
 import 'flash_tabs/upload_tab.dart';
+import 'flash_tabs/setup_tab.dart';
 
 /// Flash operations page with tabbed interface
 class FlashWizardPage extends StatefulWidget {
@@ -31,7 +30,7 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _targetSubscription = TargetManager().activeTargetStream.listen((target) {
       setState(() => _activeTarget = target);
     });
@@ -95,36 +94,36 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
                     dividerColor: Colors.transparent,
                     labelPadding: const EdgeInsets.symmetric(horizontal: 12),
                     tabs: const [
-                      Tab(child: Row(children: [Icon(Icons.settings, size: 16), SizedBox(width: 8), Text('FDR Setup')])),
-                      Tab(child: Row(children: [Icon(Icons.lock, size: 16), SizedBox(width: 8), Text('Security')])),
                       Tab(child: Row(children: [Icon(Icons.download, size: 16), SizedBox(width: 8), Text('Download')])),
                       Tab(child: Row(children: [Icon(Icons.delete_forever, size: 16), SizedBox(width: 8), Text('Erase')])),
                       Tab(child: Row(children: [Icon(Icons.upload, size: 16), SizedBox(width: 8), Text('Upload')])),
+                      Tab(child: Row(children: [Icon(Icons.settings, size: 16), SizedBox(width: 8), Text('Setup')])),
                     ],
                   ),
                 ),
 
                 // Status
-                if (_toolkit.isFdrLoaded) ...[
-                  const SizedBox(width: 16),
-                  Chip(
-                    avatar: const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                    label: const Text('FDR Loaded', style: TextStyle(fontSize: 11)),
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: Colors.green.withOpacity(0.1),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
-                ],
-                if (_toolkit.isSecuritySet) ...[
-                  const SizedBox(width: 8),
-                  Chip(
-                    avatar: const Icon(Icons.shield, color: Colors.blue, size: 16),
-                    label: const Text('Security Keys Set', style: TextStyle(fontSize: 11)),
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: Colors.blue.withOpacity(0.1),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
-                ],
+                // Status
+                const SizedBox(width: 16),
+                ToolkitStatusChip(
+                  isOk: _toolkit.isFdrLoaded,
+                  labelOk: 'FDR Loaded',
+                  labelError: 'FDR Not Loaded',
+                  iconOk: Icons.check_circle,
+                  iconError: Icons.error_outline,
+                  colorOk: Colors.green,
+                  colorError: Colors.red,
+                ),
+                const SizedBox(width: 8),
+                ToolkitStatusChip(
+                  isOk: _toolkit.isSecuritySet,
+                  labelOk: 'Security Set',
+                  labelError: 'Security Not Set',
+                  iconOk: Icons.shield,
+                  iconError: Icons.shield_outlined,
+                  colorOk: Colors.blue,
+                  colorError: Colors.red,
+                ),
               ],
             ),
           ),
@@ -132,10 +131,44 @@ class _FlashWizardPageState extends State<FlashWizardPage> with SingleTickerProv
 
           // Tab content
           Expanded(
-            child: TabBarView(controller: _tabController, children: [const FdrTab(), SecurityTab(), DownloadTab(), EraseTab(), UploadTab()]),
+            child: TabBarView(controller: _tabController, children: [DownloadTab(), EraseTab(), UploadTab(), SetupTab()]),
           ),
         ],
       ),
+    );
+  }
+}
+
+class ToolkitStatusChip extends StatelessWidget {
+  final bool isOk;
+  final String labelOk;
+  final String labelError;
+  final IconData iconOk;
+  final IconData iconError;
+  final MaterialColor colorOk;
+  final MaterialColor colorError;
+
+  const ToolkitStatusChip({
+    super.key,
+    required this.isOk,
+    required this.labelOk,
+    required this.labelError,
+    required this.iconOk,
+    required this.iconError,
+    required this.colorOk,
+    required this.colorError,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isOk ? colorOk : colorError;
+    return Chip(
+      avatar: Icon(isOk ? iconOk : iconError, color: color, size: 16),
+      label: Text(isOk ? labelOk : labelError, style: const TextStyle(fontSize: 11)),
+      visualDensity: VisualDensity.compact,
+      backgroundColor: color.withOpacity(0.1),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      side: BorderSide(color: color.withOpacity(0.3)),
     );
   }
 }

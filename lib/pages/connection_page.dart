@@ -5,6 +5,7 @@ import '../models/target.dart';
 import '../services/toolkit_service.dart';
 import '../services/log_service.dart';
 import '../services/target_manager_service.dart';
+import '../services/settings_service.dart';
 
 class ConnectionPage extends StatefulWidget {
   const ConnectionPage({super.key});
@@ -109,7 +110,21 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
       }
 
       if (validTarget) {
-        TargetManager().setActiveTarget(target);
+        // Auto-read info and load FDR
+        try {
+          // 1. Read Target Info to get the ECU Name
+          await ToolkitService().readTargetInfo(target);
+
+          TargetManager().setActiveTarget(target);
+
+          // 2. Auto-load FDR based on the ECU Name
+          await ToolkitService().autoLoadFdr(target);
+
+          // 3. Auto-apply default security keys
+          await ToolkitService().autoApplyDefaultSecurity(target);
+        } catch (e) {
+          LogService().warning("Post-connection setup failed: $e");
+        }
       }
     } on OperationInProgressException catch (e) {
       _showErrorSnackBar('Cannot connect: ${e.operationName} is in progress.');
@@ -433,11 +448,17 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
                 child: const Text("Connect"),
               ),
             ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(onPressed: _connectMockTarget, icon: const Icon(Icons.bug_report, size: 18), label: const Text("Connect Mock Target")),
-            ),
+            if (SettingsService().simulationMode) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _connectMockTarget,
+                  icon: const Icon(Icons.bug_report, size: 18),
+                  label: const Text("Connect Mock Target"),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             TextField(
               controller: _saController,

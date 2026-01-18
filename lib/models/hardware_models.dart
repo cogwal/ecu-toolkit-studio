@@ -45,8 +45,9 @@ class MemoryConfigurations {
     regions: [
       MemoryRegion(id: 0x00, name: 'Bootloader', startAddress: 0x80000000, size: 0x30000), // 192 KB
       MemoryRegion(id: 0x00, name: 'Application', startAddress: 0x80060000, size: 0x5A0000), // 5.625 MB
-      MemoryRegion(id: 0x00, name: 'Branding Block', startAddress: 0xAF03E000, size: 0x1000), // 4 KB
-      MemoryRegion(id: 0x00, name: 'Flash Emulated EEPROM', startAddress: 0xAF000000, size: 0x3E000), // ~248 KB
+      MemoryRegion(id: 0x00, name: 'Application Descriptor Block (APDB)', startAddress: 0x80060000, size: 0x4000), // 16 KB
+      MemoryRegion(id: 0x00, name: 'Branding Block (BRBL)', startAddress: 0xAF03E000, size: 0x1000), // 4 KB
+      MemoryRegion(id: 0x00, name: 'Flash Emulated EEPROM (FEE)', startAddress: 0xAF000000, size: 0x3E000), // ~248 KB
       MemoryRegion(id: 0x00, name: 'Flash Driver', startAddress: 0x7010C000, size: 0x4000), // 16 KB
       MemoryRegion(id: 0x01, name: 'External NOR Flash', startAddress: 0x00000000, size: 0x1000000), // 16 MB
       MemoryRegion(id: 0x02, name: 'External FRAM', startAddress: 0x00000000, size: 0x2000), // 8 KB
@@ -60,8 +61,9 @@ class MemoryConfigurations {
       MemoryRegion(id: 0x00, name: 'Bootloader', startAddress: 0x80000000, size: 0x30000), // 192 KB
       MemoryRegion(id: 0x00, name: 'Application 1', startAddress: 0x80060000, size: 0x1A0000), // 1.625 MB
       MemoryRegion(id: 0x00, name: 'Application 2', startAddress: 0x80300000, size: 0x200000), // 2 MB
-      MemoryRegion(id: 0x00, name: 'Branding Block', startAddress: 0xAF01E000, size: 0x1000), // 4 KB
-      MemoryRegion(id: 0x00, name: 'Flash Emulated EEPROM', startAddress: 0xAF000000, size: 0x1E000), // 120 KB
+      MemoryRegion(id: 0x00, name: 'Application Descriptor Block (APDB)', startAddress: 0x80060000, size: 0x4000), // 16 KB
+      MemoryRegion(id: 0x00, name: 'Branding Block (BRBL)', startAddress: 0xAF01E000, size: 0x1000), // 4 KB
+      MemoryRegion(id: 0x00, name: 'Flash Emulated EEPROM (FEE)', startAddress: 0xAF000000, size: 0x1E000), // 120 KB
       MemoryRegion(id: 0x00, name: 'Flash Driver', startAddress: 0x70104000, size: 0x4000), // 16 KB
     ],
   );
@@ -72,8 +74,9 @@ class MemoryConfigurations {
     regions: [
       MemoryRegion(id: 0x00, name: 'Bootloader', startAddress: 0x80000000, size: 0x30000), // 192 KB
       MemoryRegion(id: 0x00, name: 'Application', startAddress: 0x80060000, size: 0xFA0000), // 15.625 MB
-      MemoryRegion(id: 0x00, name: 'Branding Block', startAddress: 0xAF0FE000, size: 0x1000), // 4 KB
-      MemoryRegion(id: 0x00, name: 'Flash Emulated EEPROM', startAddress: 0xAF000000, size: 0xFE000), // ~1 MB
+      MemoryRegion(id: 0x00, name: 'Application Descriptor Block (APDB)', startAddress: 0x80060000, size: 0x4000), // 16 KB
+      MemoryRegion(id: 0x00, name: 'Branding Block (BRBL)', startAddress: 0xAF0FE000, size: 0x1000), // 4 KB
+      MemoryRegion(id: 0x00, name: 'Flash Emulated EEPROM (FEE)', startAddress: 0xAF000000, size: 0xFE000), // ~1 MB
       MemoryRegion(id: 0x00, name: 'Flash Driver', startAddress: 0x7010C000, size: 0x4000), // 16 KB
       MemoryRegion(id: 0x01, name: 'External NOR Flash', startAddress: 0x00000000, size: 0x2000000), // 32 MB
       MemoryRegion(id: 0x02, name: 'External FRAM', startAddress: 0x00000000, size: 0x2000), // 8 KB

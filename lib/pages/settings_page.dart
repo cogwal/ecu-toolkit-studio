@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/about_dialog.dart';
 import '../services/log_service.dart';
+import '../services/settings_service.dart';
 
 class SettingsPage extends StatefulWidget {
   final bool isDark;
@@ -16,6 +17,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final logService = LogService();
+    final settingsService = SettingsService();
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -86,6 +88,39 @@ class _SettingsPageState extends State<SettingsPage> {
                         });
                         LogService().info('Log level changed to ${_getLabelForLevel(level)}');
                       }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.science_outlined, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Simulation Mode', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          'Enable mock target connection',
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: settingsService.simulationMode,
+                    onChanged: (value) {
+                      setState(() {
+                        settingsService.simulationMode = value;
+                      });
+                      LogService().info('Simulation mode ${value ? 'enabled' : 'disabled'}');
                     },
                   ),
                 ],

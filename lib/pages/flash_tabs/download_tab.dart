@@ -16,8 +16,6 @@ class DownloadTab extends StatefulWidget {
 class _DownloadTabState extends State<DownloadTab> {
   final LogService _log = LogService();
 
-  bool _isDownloading = false;
-
   Future<void> _pickHexFile() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['hex', 'HEX'], dialogTitle: 'Select HEX File');
     if (result != null && result.files.single.path != null) {
@@ -49,8 +47,6 @@ class _DownloadTabState extends State<DownloadTab> {
       return;
     }
 
-    setState(() => _isDownloading = true);
-
     try {
       _log.info('Starting download: ${ToolkitService().downloadFilePath}');
       final result = await ToolkitService().downloadHexFile(target.targetHandle, ToolkitService().downloadFilePath!);
@@ -66,10 +62,6 @@ class _DownloadTabState extends State<DownloadTab> {
       if (mounted) showFlashErrorSnackBar(context, 'Cannot start download: ${e.operationName} is in progress.');
     } catch (e) {
       _log.error('Download failed: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isDownloading = false);
-      }
     }
   }
 
@@ -78,36 +70,28 @@ class _DownloadTabState extends State<DownloadTab> {
     return FlashTabContainer(
       icon: Icons.download,
       title: 'Download (Flash HEX)',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FlashFileSelector(label: 'HEX File', value: ToolkitService().downloadFilePath, onBrowse: _pickHexFile),
-          const SizedBox(height: 16),
-          const FlashInfoBox(
-            text: 'Select a HEX file to download to the target. The memory addresses are determined by the file contents.',
-            icon: Icons.info_outline,
-          ),
-          const Spacer(),
-          if (_isDownloading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 16),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                    SizedBox(width: 12),
-                    Text('Downloading...'),
-                  ],
-                ),
+      child: ListenableBuilder(
+        listenable: ToolkitService(),
+        builder: (context, _) {
+          final isOperationPending = ToolkitService().isOperationPending;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FlashFileSelector(label: 'HEX File', value: ToolkitService().downloadFilePath, onBrowse: _pickHexFile),
+              const SizedBox(height: 16),
+              const FlashInfoBox(
+                text: 'Select a HEX file to download to the target. The memory addresses are determined by the file contents.',
+                icon: Icons.info_outline,
               ),
-            ),
-          FlashActionButton(
-            label: _isDownloading ? 'Downloading...' : 'Download',
-            icon: Icons.download,
-            onPressed: (!_isDownloading && ToolkitService().downloadFilePath != null) ? _performDownload : null,
-          ),
-        ],
+              const Spacer(),
+              FlashActionButton(
+                label: isOperationPending ? '${ToolkitService().activeOperationName}...' : 'Download',
+                icon: Icons.download,
+                onPressed: (!isOperationPending && ToolkitService().downloadFilePath != null) ? _performDownload : null,
+              ),
+            ],
+          );
+        },
       ),
     );
   }

@@ -327,6 +327,78 @@ class ToolkitService with ChangeNotifier {
     return result;
   }
 
+  /// Automatically loads the correct FDR for the connected target.
+  ///
+  /// Uses [Target.profile] to determine the ECU name and searches in `assets/fdr/`
+  /// or `data/flutter_assets/assets/fdr/` (prod) for a matching hex file.
+  Future<void> autoLoadFdr(Target target) async {
+    if (target.profile == null || target.profile!.name == "Unknown") {
+      _log.warning("Cannot auto-load FDR: Target profile not ready or unknown.");
+      return;
+    }
+
+    final ecuName = target.profile!.name;
+    _log.info("Attempting to auto-load FDR for $ecuName...");
+
+    // Determine search directory
+    // In dev: assets/fdr/
+    // In release: data/flutter_assets/assets/fdr/ (relative to executable)
+    Directory fdrDir;
+    if (kIsWeb) {
+      // Not supported environments for file IO path assumptions
+      _log.warning("Auto-load FDR not supported on this platform.");
+      return;
+    }
+
+    // Check for local development path first
+    final devPath = Directory(r'assets\fdr');
+    if (await devPath.exists()) {
+      fdrDir = devPath;
+    } else {
+      // Check for production path relative to executable
+      final exePath = Platform.resolvedExecutable;
+      final exeDir = File(exePath).parent;
+      final prodPath = Directory('${exeDir.path}\\data\\flutter_assets\\assets\\fdr');
+      if (await prodPath.exists()) {
+        fdrDir = prodPath;
+      } else {
+        // Fallback to simpler path if flattened
+        final simpleProdPath = Directory('${exeDir.path}\\assets\\fdr');
+        if (await simpleProdPath.exists()) {
+          fdrDir = simpleProdPath;
+        } else {
+          _log.warning("FDR directory not found at ${devPath.path} or ${prodPath.path}");
+          return;
+        }
+      }
+    }
+
+    _log.debug("Searching for FDR in: ${fdrDir.path}");
+
+    try {
+      final files = fdrDir.listSync().whereType<File>().toList();
+      final patternLowerCase = "fdr${ecuName.toLowerCase()}_";
+
+      File? fdrFile;
+      for (final file in files) {
+        final filename = file.uri.pathSegments.last;
+        if (filename.toLowerCase().startsWith(patternLowerCase) && filename.toLowerCase().endsWith('.hex')) {
+          fdrFile = file;
+          break; // Stop at first match
+        }
+      }
+
+      if (fdrFile != null) {
+        _log.info("Found matching FDR file: ${fdrFile.path}");
+        await loadFdr(target.targetHandle, fdrFile.path);
+      } else {
+        _log.warning("No FDR file found starting with '$patternLowerCase' (case-insensitive) in ${fdrDir.path}");
+      }
+    } catch (e) {
+      _log.error("Error searching/loading FDR: $e");
+    }
+  }
+
   /// Resets the FDR loaded state.
   void resetFdrState() {
     _fdrLoaded = false;
@@ -411,6 +483,37 @@ class ToolkitService with ChangeNotifier {
     } finally {
       calloc.free(params);
       calloc.free(secretPtr);
+    }
+  }
+
+  /// Automatically applies default security keys (Level 1 and Level 2) for the target.
+  Future<void> autoApplyDefaultSecurity(Target target) async {
+    _log.info("Attempting to auto-apply default security keys...");
+
+    // Default keys
+    final key1 = [0x84EE5D28, 0xE75DE7CF, 0x118D5080, 0x28D3CAE2];
+    final key2 = [0xF94C35E9, 0x03BA9691, 0x3D4DF7DA, 0x63213EAA];
+
+    bool success = true;
+
+    try {
+      final res1 = await setSecurityParameters(target.targetHandle, TK_TARGET_UDS_SECURITY_LEVEL_1, key1);
+      if (res1 != 0) {
+        _log.warning("Failed to auto-apply Security Level 1");
+        success = false;
+      }
+
+      final res2 = await setSecurityParameters(target.targetHandle, TK_TARGET_UDS_SECURITY_LEVEL_2, key2);
+      if (res2 != 0) {
+        _log.warning("Failed to auto-apply Security Level 2");
+        success = false;
+      }
+
+      if (success) {
+        _log.info("Default security keys applied successfully.");
+      }
+    } catch (e) {
+      _log.error("Error auto-applying security: $e");
     }
   }
 

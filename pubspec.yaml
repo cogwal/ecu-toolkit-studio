@@ -21,6 +21,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/fdr/
+
 inno_bundle:
   id: 59401551-c793-4002-8a98-c1ed909eb92d
   name: ECU Toolkit Studio

@@ -36,6 +36,9 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
 
+    // Subscribe to ToolkitService for operation state changes
+    ToolkitService().addListener(_onToolkitServiceChanged);
+
     // Subscribe to log updates - only update status bar if entry passes filter
     _logSubscription = _logService.logStream.listen((entry) {
       setState(() {
@@ -74,8 +77,13 @@ class _MainShellState extends State<MainShell> {
     return filtered.isNotEmpty ? filtered.last : null;
   }
 
+  void _onToolkitServiceChanged() {
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    ToolkitService().removeListener(_onToolkitServiceChanged);
     _logSubscription?.cancel();
     _logLevelSubscription?.cancel();
     super.dispose();
@@ -245,6 +253,13 @@ class _MainShellState extends State<MainShell> {
             style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
           ),
           const SizedBox(width: 16),
+          // Operation in progress indicator
+          if (ToolkitService().isOperationPending) ...[
+            const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+            const SizedBox(width: 8),
+            Text('${ToolkitService().activeOperationName} in progress', style: const TextStyle(color: Colors.white, fontSize: 11)),
+            const SizedBox(width: 16),
+          ],
           // Last log message
           if (_lastLogEntry != null)
             Expanded(
