@@ -79,10 +79,7 @@ class _DownloadTabState extends State<DownloadTab> {
             children: [
               FlashFileSelector(label: 'HEX File', value: ToolkitService().downloadFilePath, onBrowse: _pickHexFile),
               const SizedBox(height: 16),
-              const FlashInfoBox(
-                text: 'Select a HEX file to download to the target. The memory addresses are determined by the file contents.',
-                icon: Icons.info_outline,
-              ),
+              const FlashInfoBox(text: 'Select a HEX file to download to the target.', icon: Icons.info_outline),
               const Spacer(),
               FlashActionButton(
                 label: isOperationPending ? '${ToolkitService().activeOperationName}...' : 'Download',
