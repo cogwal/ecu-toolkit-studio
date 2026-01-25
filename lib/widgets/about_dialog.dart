@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../native/ttctk.dart';
 
 class AboutDialogWidget {
@@ -11,7 +12,20 @@ class AboutDialogWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Version: 0.1.0'),
+            // App Version from pubspec.yaml
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Text('Version: Loading...');
+                } else if (snapshot.hasError) {
+                  return Text('Version: Error - ${snapshot.error}');
+                } else {
+                  return Text('Version: ${snapshot.data?.version ?? "Unknown"}');
+                }
+              },
+            ),
+            const SizedBox(height: 8),
             // TTCTK Version from native library
             FutureBuilder<String>(
               future: Future.value(TTCTK.instance.getVersionString()),
