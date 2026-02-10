@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import '../models/target.dart';
 import '../models/ecu_profile.dart';
@@ -221,26 +222,46 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.white10),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-            child: Icon(icon, size: 20, color: Colors.blue),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                const SizedBox(height: 2),
-                Text(
-                  displayValue,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                child: Icon(icon, size: 20, color: Colors.blue),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    const SizedBox(height: 2),
+                    Text(displayValue, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600), softWrap: true),
+                  ],
                 ),
-              ],
+              ),
+              const SizedBox(width: 24),
+            ],
+          ),
+          Positioned(
+            top: 0,
+            right: 0,
+            child: IconButton(
+              icon: const Icon(Icons.copy, size: 12),
+              tooltip: 'Copy to clipboard',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              color: Colors.grey,
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: displayValue));
+                ScaffoldMessenger.of(context).clearSnackBars();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$label copied to clipboard'), duration: const Duration(seconds: 1), behavior: SnackBarBehavior.floating),
+                );
+              },
             ),
           ),
         ],
