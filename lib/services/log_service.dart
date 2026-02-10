@@ -29,6 +29,7 @@ class LogService {
   final List<LogEntry> _logs = [];
   final StreamController<LogEntry> _logController = StreamController<LogEntry>.broadcast();
   final StreamController<LogLevel> _minLogLevelController = StreamController<LogLevel>.broadcast();
+  final StreamController<void> _clearController = StreamController<void>.broadcast();
 
   /// Minimum log level to display (default: info)
   LogLevel _minLogLevel = LogLevel.warning;
@@ -53,6 +54,9 @@ class LogService {
 
   /// Stream of new log entries for real-time updates
   Stream<LogEntry> get logStream => _logController.stream;
+
+  /// Stream of clear events for real-time updates
+  Stream<void> get clearStream => _clearController.stream;
 
   /// Add a log entry with the specified level and message
   void log(LogLevel level, String message) {
@@ -83,5 +87,6 @@ class LogService {
   /// Clear all stored logs
   void clear() {
     _logs.clear();
+    _clearController.add(null);
   }
 }

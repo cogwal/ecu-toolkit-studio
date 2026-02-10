@@ -31,6 +31,7 @@ class _MainShellState extends State<MainShell> {
   LogEntry? _lastLogEntry;
   StreamSubscription<LogEntry>? _logSubscription;
   StreamSubscription<LogLevel>? _logLevelSubscription;
+  StreamSubscription<void>? _clearSubscription;
 
   @override
   void initState() {
@@ -52,6 +53,13 @@ class _MainShellState extends State<MainShell> {
     _logLevelSubscription = _logService.minLogLevelStream.listen((_) {
       setState(() {
         _lastLogEntry = _findLastFilteredLogEntry();
+      });
+    });
+
+    // Subscribe to clear events - reset status bar when logs are cleared
+    _clearSubscription = _logService.clearStream.listen((_) {
+      setState(() {
+        _lastLogEntry = null;
       });
     });
 
@@ -86,6 +94,7 @@ class _MainShellState extends State<MainShell> {
     ToolkitService().removeListener(_onToolkitServiceChanged);
     _logSubscription?.cancel();
     _logLevelSubscription?.cancel();
+    _clearSubscription?.cancel();
     super.dispose();
   }
 
