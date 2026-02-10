@@ -19,6 +19,8 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   late TabController _tabController;
   bool _isScanning = false;
   List<Target> _discoveredTargets = [];
+  Target? _activeTarget;
+  StreamSubscription<Target?>? _activeTargetSubscription;
 
   final TextEditingController _saController = TextEditingController(text: "F1");
   final TextEditingController _taController = TextEditingController(text: "08");
@@ -52,10 +54,17 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
     }
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _activeTarget = TargetManager().activeTarget;
+    _activeTargetSubscription = TargetManager().activeTargetStream.listen((target) {
+      setState(() {
+        _activeTarget = target;
+      });
+    });
   }
 
   @override
   void dispose() {
+    _activeTargetSubscription?.cancel();
     _tabController.dispose();
     _saController.dispose();
     _taController.dispose();
@@ -92,6 +101,15 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   }
 
   Future<void> _connectTarget(int sa, int ta) async {
+    // Auto-disconnect existing target if one is active
+    final currentTarget = TargetManager().activeTarget;
+    if (currentTarget != null) {
+      LogService().info("Disconnecting from current target before connecting to new one...");
+      TargetManager().removeTarget(currentTarget);
+      ToolkitService().resetFdrState();
+      ToolkitService().resetSecurityState();
+    }
+
     if (!ToolkitService().isCanRegistered) {
       LogService().warning("Please register CAN interface first");
       return;
@@ -169,6 +187,15 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   }
 
   void _connectMockTarget() {
+    // Auto-disconnect existing target if one is active
+    final currentTarget = TargetManager().activeTarget;
+    if (currentTarget != null) {
+      LogService().info("Disconnecting from current target before connecting to new one...");
+      TargetManager().removeTarget(currentTarget);
+      ToolkitService().resetFdrState();
+      ToolkitService().resetSecurityState();
+    }
+
     LogService().info("Creating mock target connection...");
     final target = Target(
       canHandle: 0,
@@ -489,7 +516,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
                   final ta = int.tryParse(_taController.text, radix: 16) ?? 0x08;
                   _connectTarget(sa, ta);
                 },
-                child: const Text("Connect"),
+                child: Text(_activeTarget != null ? "Disconnect from current target & Connect to new target" : "Connect"),
               ),
             ),
             if (SettingsService().simulationMode) ...[

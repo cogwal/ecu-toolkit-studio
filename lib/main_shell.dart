@@ -298,14 +298,25 @@ class _MainShellState extends State<MainShell> {
               onPressed: () => setState(() => _isLogPanelVisible = !_isLogPanelVisible),
             ),
           if (_selectedIndex != 3) const SizedBox(width: 12),
-          if (isConnected)
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: const Icon(Icons.close, size: 16, color: Colors.white),
-              tooltip: "Disconnect",
+          if (isConnected) ...[
+            const SizedBox(width: 8),
+            Container(width: 1, height: 16, color: Colors.white30),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Icon(Icons.link_off, size: 16),
+              label: const Text(
+                'DISCONNECT',
+                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
               onPressed: _handleDisconnect,
             ),
+          ],
         ],
       ),
     );
