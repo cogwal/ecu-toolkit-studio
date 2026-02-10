@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/ecu_profile.dart';
 import '../models/target.dart';
+import '../native/ttctk.dart';
 import '../services/toolkit_service.dart';
 import '../services/log_service.dart';
 import '../services/target_manager_service.dart';
@@ -23,6 +24,21 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
   final TextEditingController _taController = TextEditingController(text: "08");
   final ScrollController _directTabScrollController = ScrollController();
   double _connectionTimeout = 10000;
+
+  // CAN bitrate options for the dropdown
+  // Order: 500K (default), 250K, 1M, then remaining in ascending order
+  static const List<({String label, int value})> _bitrateOptions = [
+    (label: '500 kbit/s', value: TK_CAN_BITRATE_500K),
+    (label: '250 kbit/s', value: TK_CAN_BITRATE_250K),
+    (label: '1 Mbit/s', value: TK_CAN_BITRATE_1M),
+    (label: '5 kbit/s', value: TK_CAN_BITRATE_5K),
+    (label: '10 kbit/s', value: TK_CAN_BITRATE_10K),
+    (label: '20 kbit/s', value: TK_CAN_BITRATE_20K),
+    (label: '50 kbit/s', value: TK_CAN_BITRATE_50K),
+    (label: '100 kbit/s', value: TK_CAN_BITRATE_100K),
+    (label: '125 kbit/s', value: TK_CAN_BITRATE_125K),
+  ];
+  int _selectedBitrate = TK_CAN_BITRATE_500K;
 
   // CAN interface handle
   int? _canHandle;
@@ -181,7 +197,7 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
 
   void _registerCanInterface() async {
     try {
-      await ToolkitService().registerCanInterface();
+      await ToolkitService().registerCanInterface(bitrate: _selectedBitrate);
       setState(() {
         _canHandle = ToolkitService().canHandle;
         _canStatus = "Registered (Handle: $_canHandle)";
@@ -338,10 +354,38 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
           const SizedBox(height: 12),
           Row(
             children: [
+              SizedBox(
+                width: 160,
+                child: DropdownButtonFormField<int>(
+                  value: _selectedBitrate,
+                  decoration: const InputDecoration(
+                    labelText: 'Bitrate',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  items: _bitrateOptions.map((option) {
+                    return DropdownMenuItem<int>(
+                      value: option.value,
+                      child: Text(option.label, style: const TextStyle(fontSize: 14)),
+                    );
+                  }).toList(),
+                  onChanged: _canHandle != null
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedBitrate = value;
+                            });
+                          }
+                        },
+                ),
+              ),
+              const SizedBox(width: 12),
               ElevatedButton.icon(
                 onPressed: _canHandle == null ? _registerCanInterface : null,
                 icon: const Icon(Icons.usb),
-                label: const Text("Register PEAK USB 1 (500K)"),
+                label: const Text("Register PEAK USB 1"),
               ),
               const SizedBox(width: 12),
               if (_canHandle != null)
@@ -460,16 +504,20 @@ class _ConnectionPageState extends State<ConnectionPage> with SingleTickerProvid
               ),
             ],
             const SizedBox(height: 12),
-            TextField(
-              controller: _saController,
-              decoration: const InputDecoration(
-                labelText: "Source Address (SA) (Hex)",
-                prefixText: "0x",
-                border: OutlineInputBorder(),
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            Tooltip(
+              message: 'Changing the Source Address is not yet supported',
+              child: TextField(
+                controller: _saController,
+                enabled: false,
+                decoration: const InputDecoration(
+                  labelText: "Source Address (SA) (Hex)",
+                  prefixText: "0x",
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                style: const TextStyle(fontSize: 14),
               ),
-              style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 8),
             TextField(

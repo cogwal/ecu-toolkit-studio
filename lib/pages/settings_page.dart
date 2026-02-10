@@ -20,22 +20,48 @@ class _SettingsPageState extends State<SettingsPage> {
     final settingsService = SettingsService();
 
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Settings', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 16),
-          Card(
+          // Compact Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Settings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('Configuration', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Content
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Row(
                 children: [
                   const Text('Theme', style: TextStyle(fontWeight: FontWeight.bold)),
                   const Spacer(),
-                  // Moon icon -> Switch -> Sun icon
                   IconButton(
-                    icon: Icon(Icons.dark_mode),
+                    icon: const Icon(Icons.dark_mode),
                     color: widget.isDark ? Theme.of(context).primaryColor : Theme.of(context).iconTheme.color,
                     tooltip: 'Switch to dark theme',
                     onPressed: () {
@@ -44,7 +70,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   Switch(value: !widget.isDark, onChanged: (v) => widget.onToggleTheme()),
                   IconButton(
-                    icon: Icon(Icons.light_mode),
+                    icon: const Icon(Icons.light_mode),
                     color: !widget.isDark ? Theme.of(context).primaryColor : Theme.of(context).iconTheme.color,
                     tooltip: 'Switch to light theme',
                     onPressed: () {
@@ -56,7 +82,12 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const SizedBox(height: 12),
-          Card(
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Row(
@@ -95,7 +126,12 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const SizedBox(height: 12),
-          Card(
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Row(
@@ -128,7 +164,12 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const SizedBox(height: 12),
-          Card(
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
+            ),
             child: ListTile(leading: const Icon(Icons.info_outline), title: const Text('About'), onTap: () => AboutDialogWidget.show(context)),
           ),
         ],

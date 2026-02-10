@@ -53,9 +53,9 @@ class ToolkitService with ChangeNotifier {
   int? get canHandle => _canHandle;
   bool get isCanRegistered => _canHandle != null;
 
-  /// Registers the CAN interface with default settings (PEAK USB 1, 500k).
+  /// Registers the CAN interface with the given [bitrate] (PEAK USB 1).
   /// Returns the handle on success. Throws exception on failure.
-  Future<int> registerCanInterface() async {
+  Future<int> registerCanInterface({int bitrate = TK_CAN_BITRATE_500K}) async {
     if (_activeOperation != null) {
       throw OperationInProgressException(_activeOperation!);
     }
@@ -67,7 +67,7 @@ class ToolkitService with ChangeNotifier {
       canInterface.ref.type = TK_CAN_INTERFACE_CATEGORY_PEAK;
       canInterface.peak.ref.channel = PCAN_USBBUS1;
 
-      final status = TTCTK.instance.registerCanInterface(canInterface.cast(), TK_CAN_BITRATE_500K, handlePtr.cast());
+      final status = TTCTK.instance.registerCanInterface(canInterface.cast(), bitrate, handlePtr.cast());
 
       if (status == 0) {
         _canHandle = handlePtr.value;
