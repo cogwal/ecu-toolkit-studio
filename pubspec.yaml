@@ -1,7 +1,7 @@
 name: ecu_toolkit_studio
 description: "A toolkit for ECU development."
 publish_to: 'none'
-version: 0.2.0
+version: 0.3.0
 
 environment:
   sdk: ^3.10.1

@@ -373,7 +373,6 @@ extension TkTargetSecurityParametersTypeExt on ffi.Pointer<TkTargetSecurityParam
 String _ttctkLibraryName() {
   if (Platform.isWindows) return 'ttctk.dll';
   if (Platform.isLinux) return 'libttctk.so';
-  if (Platform.isMacOS) return 'libttctk.dylib';
   throw UnsupportedError('TTCTK library not supported on this platform');
 }
 

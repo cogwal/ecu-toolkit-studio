@@ -101,7 +101,7 @@ install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
 # Install TTCTK library
-install(FILES "${PROJECT_SOURCE_DIR}/../lib/native/lib/toolkit/linux_x64/libttctk.so"
+install(FILES "${PROJECT_SOURCE_DIR}/../lib/native/lib/toolkit/linux/libttctk.so"
   DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 

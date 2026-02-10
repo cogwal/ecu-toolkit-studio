@@ -82,11 +82,11 @@ install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
 # Install TTCTK library and its dependencies
-install(FILES "${PROJECT_SOURCE_DIR}/../lib/native/lib/toolkit/windows_x64/ttctk.dll"
+install(FILES "${PROJECT_SOURCE_DIR}/../lib/native/lib/toolkit/windows/ttctk.dll"
   DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
-install(FILES "${PROJECT_SOURCE_DIR}/../lib/native/lib/toolkit/windows_x64/libcrypto-3-x64.dll"
+install(FILES "${PROJECT_SOURCE_DIR}/../lib/native/lib/toolkit/windows/libcrypto-3-x64.dll"
   DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
