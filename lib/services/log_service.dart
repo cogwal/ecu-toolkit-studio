@@ -32,7 +32,7 @@ class LogService {
   final StreamController<void> _clearController = StreamController<void>.broadcast();
 
   /// Minimum log level to display (default: info)
-  LogLevel _minLogLevel = LogLevel.warning;
+  LogLevel _minLogLevel = LogLevel.info;
 
   /// Get the current minimum log level
   LogLevel get minLogLevel => _minLogLevel;

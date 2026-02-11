@@ -108,10 +108,11 @@ class EcuHardwareMap {
     '0x00600C0D': 'TTC2785',
   };
 
-  /// Get ECU name from hardware type string
+  /// Get ECU name from hardware type string and production code
   ///
   /// The [hardwareType] string can be in formats like "0x0020040D", "(0x0020040D)", etc.
-  static String? getEcuName(String hardwareType) {
+  /// If the hardware type match fails, it attempts to match against the [productionCode].
+  static String? getEcuName(String hardwareType, String? productionCode) {
     // Exact match
     if (_typeToName.containsKey(hardwareType)) {
       return _typeToName[hardwareType];
@@ -129,6 +130,27 @@ class EcuHardwareMap {
       }
     }
 
+    // Fallback: match production code against the name itself
+    if (productionCode != null && productionCode.isNotEmpty) {
+      for (final name in _typeToName.values) {
+        // Extract numeric part from name (e.g., 2310 from TTC2310, 144 from VOLUTION144)
+        final numericPart = RegExp(r'\d+').firstMatch(name)?.group(0);
+        if (numericPart != null && productionCode.contains(numericPart)) {
+          return name;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /// Get hardware type from ECU name
+  static String? getHardwareType(String ecuName) {
+    for (final entry in _typeToName.entries) {
+      if (entry.value == ecuName) {
+        return entry.key;
+      }
+    }
     return null;
   }
 }

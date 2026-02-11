@@ -164,7 +164,7 @@ class _TargetInfoPageState extends State<TargetInfoPage> {
                           runSpacing: 16,
                           children: [
                             _buildInfoCard("Device Serial", profile.serialNumber, Icons.qr_code, width: cardWidth),
-                            _buildInfoCard("Hardware Type", "${profile.hardwareName} (${profile.hardwareType})", Icons.memory, width: cardWidth),
+                            _buildInfoCard("Hardware Type", profile.hardwareType, Icons.memory, width: cardWidth),
                             _buildInfoCard("Production Code", profile.productionCode, Icons.factory, width: cardWidth),
                           ],
                         ),

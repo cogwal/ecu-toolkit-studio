@@ -160,8 +160,17 @@ class ToolkitService with ChangeNotifier {
         return target.profile ?? EcuProfile(name: "Unknown", txId: target.ta, rxId: target.sa);
       }
 
-      final hwType = updates['hwType'] ?? '';
-      final mappedName = EcuHardwareMap.getEcuName(hwType);
+      String hwType = updates['hwType'] ?? '';
+      final productionCode = updates['productionCode'] ?? '';
+      final mappedName = EcuHardwareMap.getEcuName(hwType, productionCode);
+
+      // If hwType is empty but we identified the ECU (e.g. via production code), try to reverse lookup the hardware mapped type
+      if (hwType.isEmpty && mappedName != null) {
+        final reverseMappedType = EcuHardwareMap.getHardwareType(mappedName);
+        if (reverseMappedType != null) {
+          hwType = reverseMappedType;
+        }
+      }
 
       final currentProfile = target.profile ?? EcuProfile(name: "Unknown", txId: target.ta, rxId: target.sa);
 
