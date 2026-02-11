@@ -83,6 +83,19 @@ class MemoryConfigurations {
     ],
   );
 
+  static const ttc580 = CPUMemoryConfig(
+    hardwareTypeExt: 'UNKNOWN', // Hacky solution as the 580 will identify as uknown, todo!
+    CPUName: 'TMS570',
+    regions: [
+      MemoryRegion(id: 0x00, name: 'Bootloader', startAddress: 0x00000000, size: 0x10000), // 64 KB
+      MemoryRegion(id: 0x00, name: 'Branding Block', startAddress: 0x00010000, size: 0x8000), // 32 KB
+      MemoryRegion(id: 0x00, name: 'FPGA IP', startAddress: 0x00020000, size: 0x80000), // 512 KB
+      MemoryRegion(id: 0x00, name: 'Application', startAddress: 0x000A0000, size: 0x260000), // 2.375 MB
+      MemoryRegion(id: 0x00, name: 'External Flash', startAddress: 0x64000000, size: 0x800000), // 8 MB
+      MemoryRegion(id: 0x01, name: 'External EEPROM', startAddress: 0x00000000, size: 0x10000), // 64 KB
+    ],
+  );
+
   // List of memory configurations
   static List<CPUMemoryConfig> get all => [tc37x, tc39x, tc36x];
 
@@ -106,6 +119,7 @@ class EcuHardwareMap {
     '0x00200C0D': 'TTC2390',
     '0x00400C0D': 'TTC2740',
     '0x00600C0D': 'TTC2785',
+    'UNKNOWN': 'TTC580', // Set to unknown as there are multiple hardware types for the 580
   };
 
   /// Get ECU name from hardware type string and production code
